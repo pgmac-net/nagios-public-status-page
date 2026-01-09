@@ -1,0 +1,31 @@
+nagios:
+  status_dat_path: "/usr/local/nagios/var/status.dat"
+  hostgroups:
+    - "public-status"
+  servicegroups:
+    - "public-status-services"
+
+polling:
+  interval_seconds: 300  # Poll every 5 minutes
+  staleness_threshold_seconds: 600  # Warn if data > 10 minutes old
+
+database:
+  path: "./data/status.db"
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+  cors_origins:
+    - "*"
+
+rss:
+  title: "System Status"
+  description: "Public status updates"
+  link: "https://status.example.com"
+  max_items: 50
+
+incidents:
+  retention_days: 30  # Keep closed incidents for 30 days
+
+comments:
+  pull_nagios_comments: true  # Pull comments from status.dat

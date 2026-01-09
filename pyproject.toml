@@ -1,0 +1,30 @@
+[project]
+name = "status-page"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Paul Macdonnell", email = "pgmac@pgmac.net" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "apscheduler>=3.11.2",
+    "fastapi>=0.128.0",
+    "feedgen>=1.0.0",
+    "python-multipart>=0.0.21",
+    "pyyaml>=6.0.3",
+    "sqlalchemy>=2.0.45",
+    "uvicorn>=0.40.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.21,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pylint>=4.0.4",
+    "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
+    "ruff>=0.14.11",
+]
