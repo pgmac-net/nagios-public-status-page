@@ -3,6 +3,7 @@
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from status_page.api.schemas import (
@@ -20,6 +21,7 @@ from status_page.db.database import get_session
 from status_page.models import Comment, Incident
 
 router = APIRouter(prefix="/api", tags=["api"])
+rss_router = APIRouter(prefix="/feed", tags=["rss"])
 
 
 def get_db() -> Session:
@@ -324,4 +326,118 @@ def add_comment(
         db.rollback()
         raise HTTPException(
             status_code=500, detail=f"Failed to add comment: {exc}"
+        ) from exc
+
+
+# RSS Feed Endpoints
+
+
+@rss_router.get("/rss")
+def get_global_rss_feed(hours: int = 24, db: Session = Depends(get_db)) -> Response:
+    """Get RSS feed for all recent incidents.
+
+    Args:
+        hours: Number of hours to look back (default 24)
+        db: Database session
+
+    Returns:
+        RSS feed XML
+    """
+    from status_page.config import load_config
+    from status_page.rss.feed_generator import IncidentFeedGenerator
+
+    try:
+        config = load_config()
+        generator = IncidentFeedGenerator(config.rss, base_url=config.rss.link)
+        feed_xml = generator.generate_global_feed(db, hours=hours)
+
+        return Response(content=feed_xml, media_type="application/rss+xml")
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to generate RSS feed: {exc}"
+        ) from exc
+
+
+@rss_router.get("/host/{host_name}/rss")
+def get_host_rss_feed(
+    host_name: str, hours: int = 24, db: Session = Depends(get_db)
+) -> Response:
+    """Get RSS feed for a specific host's incidents.
+
+    Args:
+        host_name: Host name to filter by
+        hours: Number of hours to look back (default 24)
+        db: Database session
+
+    Returns:
+        RSS feed XML
+
+    Raises:
+        HTTPException: If host has no incidents
+    """
+    from status_page.config import load_config
+    from status_page.rss.feed_generator import IncidentFeedGenerator
+
+    try:
+        config = load_config()
+        generator = IncidentFeedGenerator(config.rss, base_url=config.rss.link)
+        feed_xml = generator.generate_host_feed(db, host_name, hours=hours)
+
+        if feed_xml is None:
+            raise HTTPException(
+                status_code=404, detail=f"No incidents found for host: {host_name}"
+            )
+
+        return Response(content=feed_xml, media_type="application/rss+xml")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to generate RSS feed: {exc}"
+        ) from exc
+
+
+@rss_router.get("/service/{host_name}/{service_description}/rss")
+def get_service_rss_feed(
+    host_name: str,
+    service_description: str,
+    hours: int = 24,
+    db: Session = Depends(get_db),
+) -> Response:
+    """Get RSS feed for a specific service's incidents.
+
+    Args:
+        host_name: Host name
+        service_description: Service description
+        hours: Number of hours to look back (default 24)
+        db: Database session
+
+    Returns:
+        RSS feed XML
+
+    Raises:
+        HTTPException: If service has no incidents
+    """
+    from status_page.config import load_config
+    from status_page.rss.feed_generator import IncidentFeedGenerator
+
+    try:
+        config = load_config()
+        generator = IncidentFeedGenerator(config.rss, base_url=config.rss.link)
+        feed_xml = generator.generate_service_feed(
+            db, host_name, service_description, hours=hours
+        )
+
+        if feed_xml is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No incidents found for service: {host_name}/{service_description}",
+            )
+
+        return Response(content=feed_xml, media_type="application/rss+xml")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to generate RSS feed: {exc}"
         ) from exc

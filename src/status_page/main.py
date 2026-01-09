@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from status_page.api.routes import router
+from status_page.api.routes import router, rss_router
 from status_page.collector.poller import StatusPoller
 from status_page.config import load_config
 
@@ -47,6 +47,7 @@ app.add_middleware(
 
 # Include API routes
 app.include_router(router)
+app.include_router(rss_router)
 
 # Global poller instance
 poller: StatusPoller | None = None
@@ -116,6 +117,9 @@ async def api_info() -> JSONResponse:
                 "GET /api/incidents": "List incidents (query params: active_only, hours)",
                 "GET /api/incidents/{id}": "Get incident details with comments",
                 "POST /api/incidents/{id}/comments": "Add a comment to an incident",
+                "GET /feed/rss": "Global RSS feed for all incidents",
+                "GET /feed/host/{host_name}/rss": "RSS feed for specific host",
+                "GET /feed/service/{host_name}/{service_description}/rss": "RSS feed for specific service",
             }
         }
     )
