@@ -45,8 +45,54 @@ async function handleAuthError(response, retryFn) {
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 }
 
+// Theme management
+function getSystemTheme() {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function applyTheme(theme) {
+    const root = document.documentElement;
+
+    if (theme === 'system') {
+        // Remove explicit theme attribute to use system preference
+        root.removeAttribute('data-theme');
+    } else {
+        // Set explicit theme
+        root.setAttribute('data-theme', theme);
+    }
+
+    // Update active button
+    document.querySelectorAll('.theme-option').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.theme === theme) {
+            btn.classList.add('active');
+        }
+    });
+}
+
+function setTheme(theme) {
+    localStorage.setItem('theme', theme);
+    applyTheme(theme);
+}
+
+function initTheme() {
+    // Get saved theme or default to system
+    const savedTheme = localStorage.getItem('theme') || 'system';
+    applyTheme(savedTheme);
+}
+
+// Listen for system theme changes when in system mode
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    const currentTheme = localStorage.getItem('theme') || 'system';
+    if (currentTheme === 'system') {
+        // Force re-render by toggling attribute
+        applyTheme('system');
+    }
+});
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
+    initTheme();
     loadAllData();
     startAutoRefresh();
 });

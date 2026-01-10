@@ -12,7 +12,12 @@
             <h1>System Status</h1>
             <div class="header-info">
                 <span id="last-update">Last updated: Loading...</span>
-                <div style="display: flex; gap: 10px;">
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <div class="theme-toggle">
+                        <button class="theme-option" data-theme="light" onclick="setTheme('light')">☀️ Light</button>
+                        <button class="theme-option" data-theme="dark" onclick="setTheme('dark')">🌙 Dark</button>
+                        <button class="theme-option active" data-theme="system" onclick="setTheme('system')">💻 System</button>
+                    </div>
                     <button id="refresh-btn" class="btn-refresh" onclick="refreshData()">Refresh</button>
                     <button class="btn-poll" onclick="triggerManualPoll()">🔄 Poll Now</button>
                 </div>
