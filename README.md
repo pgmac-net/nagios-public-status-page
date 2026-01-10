@@ -4,18 +4,18 @@ A standalone public status page application that displays selected hosts and ser
 
 ## Features
 
--  Reads from Nagios `status.dat` file (no additional plugins required)
--  Filters hosts and services by hostgroups and servicegroups
--  Configurable polling interval
--  Tracks incidents with start/end times
--  Manual status comments and updates
--  Optional Nagios comment integration
--  **Post-Incident Review (PIR) document linking** - Link resolved incidents to their PIR docs
--  RSS feeds (global, per-host, per-service)
--  Data staleness detection and warnings
--  RESTful API for extensibility
--  Completely separate from Nagios
--  Simple deployment with SQLite
+- Reads from Nagios `status.dat` file (no additional plugins required)
+- Filters hosts and services by hostgroups and servicegroups
+- Configurable polling interval
+- Tracks incidents with start/end times
+- Manual status comments and updates
+- Optional Nagios comment integration
+- **Post-Incident Review (PIR) document linking** - Link resolved incidents to their PIR docs
+- RSS feeds (global, per-host, per-service)
+- Data staleness detection and warnings
+- RESTful API for extensibility
+- Completely separate from Nagios
+- Simple deployment with SQLite
 
 ## Architecture
 
@@ -137,6 +137,7 @@ open http://localhost:8000
 - **Manual**: Direct Python deployment
 
 See **[DEPLOYMENT.md](DEPLOYMENT.md)** for complete deployment documentation including:
+
 - Docker and Docker Compose setup
 - Systemd service configuration
 - Production best practices
@@ -173,7 +174,7 @@ uv run ruff check --fix src/ tests/
 
 ## Project Status
 
-### Phase 1: Core Parser & Data Model  COMPLETED
+### Phase 1: Core Parser & Data Model ✅ COMPLETED
 
 - [x] Python project setup with UV
 - [x] status.dat parser with hostgroup/servicegroup filtering
@@ -303,6 +304,7 @@ curl -X PATCH http://localhost:8000/api/incidents/123/pir \
 ### Viewing PIR Links
 
 PIR links appear:
+
 - In the incident detail modal on the dashboard (with a document icon)
 - In API responses for incidents (`GET /api/incidents/{id}` and `GET /api/incidents`)
 - PIR URLs are optional and can be null for incidents without documentation
@@ -321,19 +323,19 @@ python migrations/001_add_pir_url.py data/status.db
 
 ```
 public-status-page/
-   src/
-      status_page/
-          parser/          # status.dat parser
-          collector/       # Background polling
-          api/             # FastAPI routes
-          rss/             # RSS feed generator
-          db/              # Database setup
-          models.py        # SQLAlchemy models
-          config.py        # Configuration
-   tests/                   # Test suite
-   static/                  # Frontend files
-   config.yaml              # Configuration
-   pyproject.toml           # Dependencies
+   src/
+      status_page/
+          parser/          # status.dat parser
+          collector/       # Background polling
+          api/             # FastAPI routes
+          rss/             # RSS feed generator
+          db/              # Database setup
+          models.py        # SQLAlchemy models
+          config.py        # Configuration
+   tests/                   # Test suite
+   static/                  # Frontend files
+   config.yaml              # Configuration
+   pyproject.toml           # Dependencies
 ```
 
 ### Contributing
