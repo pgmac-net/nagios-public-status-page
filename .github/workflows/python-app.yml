@@ -1,0 +1,44 @@
+name: Library test, lint and typecheck
+run-name: Test, lint and typecheck
+on: [push]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.10"
+
+      - run: uv sync
+
+      - name: Run Ruff
+        uses: astral-sh/ruff-action@v1 # Use the official action
+        with:
+          # Optional: specify arguments (default is 'check')
+          args: "check --output-format=github"
+          # Optional: specify source directory (default is '.')
+          src: "src/"
+
+      - name: Test with pytest
+        run: uv run pytest -v
+
+      - name: Typecheck with ty
+        run: uvx ty check src
+
+      - name: Check project version
+        uses: maybe-hello-world/pyproject-check-version@v4
+        id: versioncheck
+        with:
+          pyproject-path: "./pyproject.toml"
+
+      - name: Publish the pypi project
+        if: steps.versioncheck.outputs.local_version_is_higher == 'true'
+        run: uv build && uv publish -t ${{ secrets.PYPI_TOKEN }}

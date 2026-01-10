@@ -1,0 +1,30 @@
+# Include documentation and license files
+include README.md
+include LICENSE
+include pyproject.toml
+
+# Include static web assets
+recursive-include static *.html *.css *.js *.svg *.png *.ico
+
+# Include configuration files
+include config.yaml
+include config.example.yaml
+
+# Exclude Python cache and build artifacts
+global-exclude __pycache__
+global-exclude *.py[co]
+global-exclude .DS_Store
+global-exclude *.so
+global-exclude .git*
+
+# Exclude development and test files
+exclude .gitignore
+exclude .python-version
+exclude generate_favicons.py
+prune tests
+prune .pytest_cache
+prune .ruff_cache
+prune .venv
+prune build
+prune dist
+prune *.egg-info

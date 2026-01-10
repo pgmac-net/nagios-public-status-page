@@ -10,7 +10,7 @@ from fastapi.responses import Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sqlalchemy.orm import Session
 
-from status_page.api.schemas import (
+from nagios_public_status_page.api.schemas import (
     CommentCreate,
     CommentResponse,
     HealthResponse,
@@ -22,9 +22,9 @@ from status_page.api.schemas import (
     ServiceStatusResponse,
     StatusSummary,
 )
-from status_page.collector.incident_tracker import IncidentTracker
-from status_page.db.database import get_session
-from status_page.models import Comment, Incident
+from nagios_public_status_page.collector.incident_tracker import IncidentTracker
+from nagios_public_status_page.db.database import get_session
+from nagios_public_status_page.models import Comment, Incident
 
 router = APIRouter(prefix="/api", tags=["api"])
 rss_router = APIRouter(prefix="/feed", tags=["rss"])
@@ -54,7 +54,7 @@ def verify_write_access(credentials: HTTPBasicCredentials = Depends(security)) -
     Raises:
         HTTPException: If authentication is required but credentials are invalid
     """
-    from status_page.config import load_config
+    from nagios_public_status_page.config import load_config
 
     config = load_config()
 
@@ -90,8 +90,8 @@ def health_check(db: Session = Depends(get_db)) -> HealthResponse:
     Returns:
         Health status information
     """
-    from status_page.collector.poller import StatusPoller
-    from status_page.config import load_config
+    from nagios_public_status_page.collector.poller import StatusPoller
+    from nagios_public_status_page.config import load_config
 
     try:
         config = load_config()
@@ -142,8 +142,8 @@ def trigger_poll(
     Returns:
         Poll results and statistics
     """
-    from status_page.collector.poller import StatusPoller
-    from status_page.config import load_config
+    from nagios_public_status_page.collector.poller import StatusPoller
+    from nagios_public_status_page.config import load_config
 
     try:
         config = load_config()
@@ -169,9 +169,9 @@ def get_status(db: Session = Depends(get_db)) -> StatusSummary:
     Returns:
         Status summary with host/service counts
     """
-    from status_page.collector.poller import StatusPoller
-    from status_page.config import load_config
-    from status_page.parser.status_dat import StatusDatParser
+    from nagios_public_status_page.collector.poller import StatusPoller
+    from nagios_public_status_page.config import load_config
+    from nagios_public_status_page.parser.status_dat import StatusDatParser
 
     try:
         config = load_config()
@@ -245,8 +245,8 @@ def get_hosts(db: Session = Depends(get_db)) -> list[HostStatusResponse]:
     Returns:
         List of host statuses
     """
-    from status_page.config import load_config
-    from status_page.parser.status_dat import StatusDatParser
+    from nagios_public_status_page.config import load_config
+    from nagios_public_status_page.parser.status_dat import StatusDatParser
 
     try:
         config = load_config()
@@ -286,8 +286,8 @@ def get_services(db: Session = Depends(get_db)) -> list[ServiceStatusResponse]:
     Returns:
         List of service statuses
     """
-    from status_page.config import load_config
-    from status_page.parser.status_dat import StatusDatParser
+    from nagios_public_status_page.config import load_config
+    from nagios_public_status_page.parser.status_dat import StatusDatParser
 
     try:
         config = load_config()
@@ -490,8 +490,8 @@ def get_global_rss_feed(hours: int = 24, db: Session = Depends(get_db)) -> Respo
     Returns:
         RSS feed XML
     """
-    from status_page.config import load_config
-    from status_page.rss.feed_generator import IncidentFeedGenerator
+    from nagios_public_status_page.config import load_config
+    from nagios_public_status_page.rss.feed_generator import IncidentFeedGenerator
 
     try:
         config = load_config()
@@ -522,8 +522,8 @@ def get_host_rss_feed(
     Raises:
         HTTPException: If host has no incidents
     """
-    from status_page.config import load_config
-    from status_page.rss.feed_generator import IncidentFeedGenerator
+    from nagios_public_status_page.config import load_config
+    from nagios_public_status_page.rss.feed_generator import IncidentFeedGenerator
 
     try:
         config = load_config()
@@ -565,8 +565,8 @@ def get_service_rss_feed(
     Raises:
         HTTPException: If service has no incidents
     """
-    from status_page.config import load_config
-    from status_page.rss.feed_generator import IncidentFeedGenerator
+    from nagios_public_status_page.config import load_config
+    from nagios_public_status_page.rss.feed_generator import IncidentFeedGenerator
 
     try:
         config = load_config()

@@ -5,8 +5,8 @@ from datetime import timezone
 from feedgen.feed import FeedGenerator
 from sqlalchemy.orm import Session
 
-from status_page.config import RSSConfig
-from status_page.models import Incident
+from nagios_public_status_page.config import RSSConfig
+from nagios_public_status_page.models import Incident
 
 
 class IncidentFeedGenerator:
@@ -119,7 +119,7 @@ class IncidentFeedGenerator:
         Returns:
             RSS feed XML string
         """
-        from status_page.collector.incident_tracker import IncidentTracker
+        from nagios_public_status_page.collector.incident_tracker import IncidentTracker
 
         feed = self._create_base_feed()
 
@@ -147,7 +147,7 @@ class IncidentFeedGenerator:
         Returns:
             RSS feed XML string, or None if host has no incidents
         """
-        from status_page.collector.incident_tracker import IncidentTracker
+        from nagios_public_status_page.collector.incident_tracker import IncidentTracker
 
         feed = self._create_base_feed(
             title=f"{self.config.title} - {host_name}",
@@ -187,7 +187,7 @@ class IncidentFeedGenerator:
         Returns:
             RSS feed XML string, or None if service has no incidents
         """
-        from status_page.collector.incident_tracker import IncidentTracker
+        from nagios_public_status_page.collector.incident_tracker import IncidentTracker
 
         feed = self._create_base_feed(
             title=f"{self.config.title} - {host_name}/{service_description}",

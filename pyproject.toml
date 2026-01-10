@@ -1,10 +1,33 @@
 [project]
-name = "status-page"
+name = "nagios-public-status-page"
 version = "0.1.0"
-description = "A Public facing Status Page that gets details from configurable Nagios hosts and/or services"
+description = "A public-facing status page that displays Nagios monitoring data with incident tracking and RSS feeds"
 readme = "README.md"
+license = { text = "MIT" }
 authors = [
     { name = "Paul Macdonnell", email = "pgmac@pgmac.net" }
+]
+maintainers = [
+    { name = "Paul Macdonnell", email = "pgmac@pgmac.net" }
+]
+keywords = [
+    "nagios",
+    "monitoring",
+    "status-page",
+    "incidents",
+    "rss",
+    "fastapi",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: System :: Monitoring",
+    "Topic :: System :: Systems Administration",
+    "Framework :: FastAPI",
 ]
 requires-python = ">=3.13"
 dependencies = [
@@ -16,6 +39,15 @@ dependencies = [
     "sqlalchemy>=2.0.45",
     "uvicorn>=0.40.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/pgmac/nagios-public-status-page"
+Repository = "https://github.com/pgmac/nagios-public-status-page"
+Issues = "https://github.com/pgmac/nagios-public-status-page/issues"
+Documentation = "https://github.com/pgmac/nagios-public-status-page#readme"
+
+[project.scripts]
+status-page = "nagios_public_status_page.main:main"
 
 [build-system]
 requires = ["uv_build>=0.9.21,<0.10.0"]

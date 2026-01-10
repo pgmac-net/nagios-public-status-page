@@ -7,9 +7,9 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from status_page.config import RSSConfig
-from status_page.models import Base, Incident
-from status_page.rss.feed_generator import IncidentFeedGenerator
+from nagios_public_status_page.config import RSSConfig
+from nagios_public_status_page.models import Base, Incident
+from nagios_public_status_page.rss.feed_generator import IncidentFeedGenerator
 
 
 @pytest.fixture

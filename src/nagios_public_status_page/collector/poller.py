@@ -7,11 +7,11 @@ from typing import TypedDict
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy.orm import Session
 
-from status_page.collector.incident_tracker import IncidentTracker
-from status_page.config import Config
-from status_page.db.database import get_database
-from status_page.models import Incident, PollMetadata
-from status_page.parser.status_dat import StatusDatParser
+from nagios_public_status_page.collector.incident_tracker import IncidentTracker
+from nagios_public_status_page.config import Config
+from nagios_public_status_page.db.database import get_database
+from nagios_public_status_page.models import Incident, PollMetadata
+from nagios_public_status_page.parser.status_dat import StatusDatParser
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

@@ -5,7 +5,7 @@ from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from status_page.models import Base
+from nagios_public_status_page.models import Base
 
 
 class Database:

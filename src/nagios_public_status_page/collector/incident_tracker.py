@@ -5,7 +5,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from status_page.models import Incident, NagiosComment
+from nagios_public_status_page.models import Incident, NagiosComment
 
 
 class IncidentTracker:

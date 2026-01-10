@@ -16,9 +16,13 @@ parts/
 sdist/
 var/
 wheels/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
 
 # Virtual environments
 .venv/
@@ -37,6 +41,10 @@ env/
 .coverage
 htmlcov/
 .tox/
+.ruff_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
 
 # Database
 *.db

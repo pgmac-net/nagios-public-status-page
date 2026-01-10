@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from status_page.parser.status_dat import StatusDatParser
+from nagios_public_status_page.parser.status_dat import StatusDatParser
 
 
 @pytest.fixture

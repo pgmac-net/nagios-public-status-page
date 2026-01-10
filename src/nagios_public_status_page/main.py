@@ -9,9 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from status_page.api.routes import router, rss_router
-from status_page.collector.poller import StatusPoller
-from status_page.config import load_config
+from nagios_public_status_page.api.routes import router, rss_router
+from nagios_public_status_page.collector.poller import StatusPoller
+from nagios_public_status_page.config import load_config
 
 # Configure logging
 logging.basicConfig(
@@ -134,12 +134,17 @@ async def api_info() -> JSONResponse:
     )
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Main entry point for the status page application."""
     import uvicorn
 
     uvicorn.run(
-        "status_page.main:app",
+        "nagios_public_status_page.main:app",
         host=config.api.host,
         port=config.api.port,
-        reload=True,
+        reload=False,
     )
+
+
+if __name__ == "__main__":
+    main()

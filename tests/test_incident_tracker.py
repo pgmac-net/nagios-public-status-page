@@ -6,8 +6,8 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from status_page.collector.incident_tracker import IncidentTracker
-from status_page.models import Base, Incident, NagiosComment
+from nagios_public_status_page.collector.incident_tracker import IncidentTracker
+from nagios_public_status_page.models import Base, Incident, NagiosComment
 
 
 @pytest.fixture
