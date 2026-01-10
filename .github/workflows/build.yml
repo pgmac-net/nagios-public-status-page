@@ -144,3 +144,47 @@ jobs:
               repo: context.repo.repo,
               body: body
             });
+
+      - name: Generate job summary
+        if: always()
+        env:
+          GHCR_TAGS: ${{ steps.meta_ghcr.outputs.tags }}
+          DOCKER_TAGS: ${{ steps.meta_docker.outputs.tags }}
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          echo "## 🐳 Docker Build & Push Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Lint results
+          echo "✅ **Ruff Lint**: Passed" >> $GITHUB_STEP_SUMMARY
+
+          # Build results
+          if [ "${{ steps.push.outcome }}" == "success" ]; then
+            echo "✅ **Docker Build**: Successfully built and pushed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Docker Build**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Published Images" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # GHCR tags
+          echo "**GitHub Container Registry:**" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "$GHCR_TAGS" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Docker Hub tags
+          echo "**Docker Hub:**" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "$DOCKER_TAGS" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Digest
+          echo "**Image Digest:**" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "$DIGEST" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
