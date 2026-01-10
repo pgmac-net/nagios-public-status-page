@@ -17,6 +17,7 @@ class IncidentResponse(BaseModel):
     ended_at: datetime | None
     last_check: datetime | None
     plugin_output: str | None
+    post_incident_review_url: str | None
     is_active: bool
 
     class Config:
@@ -45,6 +46,12 @@ class CommentCreate(BaseModel):
 
     author: str = Field(..., min_length=1, max_length=255)
     comment_text: str = Field(..., min_length=1)
+
+
+class PostIncidentReviewUpdate(BaseModel):
+    """Schema for updating post-incident review URL."""
+
+    post_incident_review_url: str = Field(..., min_length=1, max_length=512)
 
 
 class NagiosCommentResponse(BaseModel):

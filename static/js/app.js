@@ -415,6 +415,26 @@ async function showIncidentDetail(incidentId) {
 
         detailEl.appendChild(section2);
 
+        // Post-Incident Review Link
+        if (incident.post_incident_review_url) {
+            const pirSection = document.createElement('div');
+            pirSection.className = 'incident-detail-section';
+
+            const pirH3 = document.createElement('h3');
+            pirH3.textContent = 'Post-Incident Review';
+            pirSection.appendChild(pirH3);
+
+            const pirLink = document.createElement('a');
+            pirLink.href = incident.post_incident_review_url;
+            pirLink.target = '_blank';
+            pirLink.rel = 'noopener noreferrer';
+            pirLink.className = 'pir-link';
+            pirLink.textContent = '\uD83D\uDCC4 View Post-Incident Review Document';
+            pirSection.appendChild(pirLink);
+
+            detailEl.appendChild(pirSection);
+        }
+
         // Plugin output
         if (incident.plugin_output) {
             const section3 = document.createElement('div');

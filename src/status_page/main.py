@@ -90,7 +90,7 @@ async def shutdown_event() -> None:
             logger.error("Error stopping background poller: %s", exc)
 
 
-@app.get("/")
+@app.get("/", response_model=None)
 async def root() -> FileResponse | JSONResponse:
     """Serve the main dashboard page.
 

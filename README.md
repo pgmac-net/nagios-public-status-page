@@ -10,6 +10,7 @@ A standalone public status page application that displays selected hosts and ser
 -  Tracks incidents with start/end times
 -  Manual status comments and updates
 -  Optional Nagios comment integration
+-  **Post-Incident Review (PIR) document linking** - Link resolved incidents to their PIR docs
 -  RSS feeds (global, per-host, per-service)
 -  Data staleness detection and warnings
 -  RESTful API for extensibility
@@ -250,29 +251,69 @@ uv run ruff check --fix src/ tests/
 - [x] Docker build tested successfully (290MB image)
 - [x] Health checks and security hardening
 
+### Phase 7: Post-Incident Review Integration ✅ COMPLETED
+
+- [x] Database schema: Added `post_incident_review_url` field to incidents table
+- [x] Database migration script (001_add_pir_url.py)
+- [x] API schemas updated to include PIR URL
+- [x] PATCH endpoint to set/update PIR URLs (`/api/incidents/{id}/pir`)
+- [x] Frontend displays PIR links in incident detail modal
+- [x] Comprehensive test suite (10 additional tests = 51 total)
+- [x] Documentation updated
+
 ## API Endpoints
 
 ```
-GET  /api/status                                   - Overall system status
-GET  /api/hosts                                    - Filtered host statuses
-GET  /api/services                                 - Filtered service statuses
-GET  /api/incidents                                - Active and recent incidents
-GET  /api/incidents/{id}                           - Specific incident details
-POST /api/incidents/{id}/comments                  - Add manual status update
-GET  /api/health                                   - Data freshness check
-GET  /feed/rss                                     - RSS feed (all incidents)
-GET  /feed/host/{host_name}/rss                    - Per-host RSS feed
-GET  /feed/service/{host_name}/{service}/rss       - Per-service RSS feed
+GET   /api/status                                   - Overall system status
+GET   /api/hosts                                    - Filtered host statuses
+GET   /api/services                                 - Filtered service statuses
+GET   /api/incidents                                - Active and recent incidents
+GET   /api/incidents/{id}                           - Specific incident details
+POST  /api/incidents/{id}/comments                  - Add manual status update
+PATCH /api/incidents/{id}/pir                       - Link PIR document to incident
+GET   /api/health                                   - Data freshness check
+GET   /feed/rss                                     - RSS feed (all incidents)
+GET   /feed/host/{host_name}/rss                    - Per-host RSS feed
+GET   /feed/service/{host_name}/{service}/rss       - Per-service RSS feed
 ```
 
 ## Database Schema
 
 The SQLite database includes:
 
-- **incidents**: Host and service incidents with start/end times
+- **incidents**: Host and service incidents with start/end times (includes `post_incident_review_url`)
 - **comments**: Manual status updates
 - **nagios_comments**: Comments pulled from Nagios
 - **poll_metadata**: Polling history and metadata
+
+## Post-Incident Review (PIR) Integration
+
+Link resolved incidents to their post-incident review documents for better incident tracking and learning.
+
+### Setting a PIR URL for an Incident
+
+Use the PATCH endpoint to associate a PIR document with an incident:
+
+```bash
+curl -X PATCH http://localhost:8000/api/incidents/123/pir \
+  -H "Content-Type: application/json" \
+  -d '{"post_incident_review_url": "https://your-pir-docs.com/incidents/2025-01-10-incident/"}'
+```
+
+### Viewing PIR Links
+
+PIR links appear:
+- In the incident detail modal on the dashboard (with a document icon)
+- In API responses for incidents (`GET /api/incidents/{id}` and `GET /api/incidents`)
+- PIR URLs are optional and can be null for incidents without documentation
+
+### Database Migration
+
+If upgrading from an earlier version, run the migration to add the PIR URL column:
+
+```bash
+python migrations/001_add_pir_url.py data/status.db
+```
 
 ## Development
 

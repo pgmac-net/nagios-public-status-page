@@ -13,6 +13,7 @@ from status_page.api.schemas import (
     HostStatusResponse,
     IncidentResponse,
     IncidentWithComments,
+    PostIncidentReviewUpdate,
     ServiceStatusResponse,
     StatusSummary,
 )
@@ -326,6 +327,46 @@ def add_comment(
         db.rollback()
         raise HTTPException(
             status_code=500, detail=f"Failed to add comment: {exc}"
+        ) from exc
+
+
+@router.patch("/incidents/{incident_id}/pir", response_model=IncidentResponse)
+def update_pir_url(
+    incident_id: int,
+    pir_data: PostIncidentReviewUpdate,
+    db: Session = Depends(get_db),
+) -> IncidentResponse:
+    """Update the post-incident review URL for an incident.
+
+    Args:
+        incident_id: Incident ID
+        pir_data: Post-incident review URL data
+        db: Database session
+
+    Returns:
+        Updated incident
+
+    Raises:
+        HTTPException: If incident not found
+    """
+    try:
+        # Find incident
+        incident = db.query(Incident).filter(Incident.id == incident_id).first()
+        if not incident:
+            raise HTTPException(status_code=404, detail="Incident not found")
+
+        # Update PIR URL
+        incident.post_incident_review_url = pir_data.post_incident_review_url
+        db.commit()
+        db.refresh(incident)
+
+        return IncidentResponse.model_validate(incident)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=500, detail=f"Failed to update PIR URL: {exc}"
         ) from exc
 
 

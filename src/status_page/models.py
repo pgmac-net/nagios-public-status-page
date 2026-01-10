@@ -22,6 +22,7 @@ class Incident(Base):
     ended_at = Column(DateTime, nullable=True, index=True)
     last_check = Column(DateTime, nullable=True)
     plugin_output = Column(Text, nullable=True)
+    post_incident_review_url = Column(String(512), nullable=True)  # Link to PIR document
 
     # Relationships
     comments = relationship("Comment", back_populates="incident", cascade="all, delete-orphan")
@@ -50,6 +51,7 @@ class Incident(Base):
             "ended_at": self.ended_at.isoformat() if self.ended_at else None,
             "last_check": self.last_check.isoformat() if self.last_check else None,
             "plugin_output": self.plugin_output,
+            "post_incident_review_url": self.post_incident_review_url,
             "is_active": self.is_active,
         }
 
