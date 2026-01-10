@@ -1,3 +1,7 @@
+![build workflow](https://github.com/pgmac-net/nagios-public-status-page/actions/workflows/python-app.yml/badge.svg)
+![licence](https://img.shields.io/github/license/pgmac-net/nagios-public-status-page.svg)
+![uv-managed](https://img.shields.io/badge/uv-managed-blueviolet)
+
 # Public Status Page for Nagios
 
 A standalone public status page application that displays selected hosts and services from your Nagios monitoring system.
