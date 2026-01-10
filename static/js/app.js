@@ -6,6 +6,45 @@ const AUTO_REFRESH_INTERVAL = 60000; // 60 seconds
 let currentIncidentFilter = 'active';
 let autoRefreshTimer = null;
 
+// Basic Auth credentials (stored in memory only)
+let authCredentials = null;
+
+// Helper to get auth headers
+function getAuthHeaders() {
+    if (authCredentials) {
+        const encoded = btoa(`${authCredentials.username}:${authCredentials.password}`);
+        return {
+            'Authorization': `Basic ${encoded}`
+        };
+    }
+    return {};
+}
+
+// Prompt for credentials if needed
+function promptForCredentials() {
+    const username = prompt('Authentication required.\n\nUsername:');
+    if (!username) return false;
+
+    const password = prompt('Password:');
+    if (!password) return false;
+
+    authCredentials = { username, password };
+    return true;
+}
+
+// Handle 401 errors by prompting for credentials
+async function handleAuthError(response, retryFn) {
+    if (response.status === 401) {
+        authCredentials = null; // Clear invalid credentials
+        if (promptForCredentials()) {
+            return await retryFn();
+        } else {
+            throw new Error('Authentication cancelled');
+        }
+    }
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
     loadAllData();
@@ -37,16 +76,27 @@ async function triggerManualPoll() {
     button.disabled = true;
     button.textContent = 'Polling...';
 
-    try {
+    const doPoll = async () => {
         const response = await fetch(`${API_BASE}/poll`, {
-            method: 'POST'
+            method: 'POST',
+            headers: {
+                ...getAuthHeaders()
+            }
         });
+
+        if (response.status === 401) {
+            return await handleAuthError(response, doPoll);
+        }
 
         if (!response.ok) {
             throw new Error('Poll failed');
         }
 
-        const data = await response.json();
+        return await response.json();
+    };
+
+    try {
+        await doPoll();
 
         // Show success message briefly
         button.textContent = 'Poll Complete!';
@@ -634,11 +684,12 @@ async function submitComment(event) {
     const author = document.getElementById('comment-author').value;
     const commentText = document.getElementById('comment-text').value;
 
-    try {
+    const doSubmit = async () => {
         const response = await fetch(`${API_BASE}/incidents/${incidentId}/comments`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                ...getAuthHeaders()
             },
             body: JSON.stringify({
                 author: author,
@@ -646,9 +697,19 @@ async function submitComment(event) {
             })
         });
 
+        if (response.status === 401) {
+            return await handleAuthError(response, doSubmit);
+        }
+
         if (!response.ok) {
             throw new Error('Failed to submit comment');
         }
+
+        return response;
+    };
+
+    try {
+        await doSubmit();
 
         // Reload incident detail
         await showIncidentDetail(incidentId);
@@ -677,20 +738,31 @@ async function submitPirUrl(event, incidentId) {
         return;
     }
 
-    try {
+    const doSubmit = async () => {
         const response = await fetch(`${API_BASE}/incidents/${incidentId}/pir`, {
             method: 'PATCH',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                ...getAuthHeaders()
             },
             body: JSON.stringify({
                 post_incident_review_url: pirUrl
             })
         });
 
+        if (response.status === 401) {
+            return await handleAuthError(response, doSubmit);
+        }
+
         if (!response.ok) {
             throw new Error('Failed to update PIR URL');
         }
+
+        return response;
+    };
+
+    try {
+        await doSubmit();
 
         // Reload incident detail
         await showIncidentDetail(incidentId);

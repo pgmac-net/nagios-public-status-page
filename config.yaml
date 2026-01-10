@@ -34,6 +34,13 @@ api:
   cors_origins:
     - "*"
 
+  # Basic Auth for write operations (comments, PIR updates, manual polls)
+  # Leave both unset to disable authentication
+  # Can also be set via environment variables:
+  #   API_BASIC_AUTH_USERNAME and API_BASIC_AUTH_PASSWORD
+  basic_auth_username: null  # Set to enable auth (e.g., "admin")
+  basic_auth_password: null  # Set to enable auth (e.g., "secure-password")
+
 rss:
   title: "System Status"
   description: "Public status updates"

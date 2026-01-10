@@ -56,6 +56,12 @@ class APIConfig(BaseModel):
     cors_origins: list[str] = Field(
         default_factory=lambda: ["*"], description="CORS allowed origins"
     )
+    basic_auth_username: str | None = Field(
+        default=None, description="Username for Basic Auth (write operations only)"
+    )
+    basic_auth_password: str | None = Field(
+        default=None, description="Password for Basic Auth (write operations only)"
+    )
 
 
 class RSSConfig(BaseModel):
@@ -165,6 +171,12 @@ def load_config(config_path: str | Path = "config.yaml") -> Config:
 
     if api_port := os.getenv("API_PORT"):
         config_data.setdefault("api", {})["port"] = int(api_port)
+
+    if auth_username := os.getenv("API_BASIC_AUTH_USERNAME"):
+        config_data.setdefault("api", {})["basic_auth_username"] = auth_username
+
+    if auth_password := os.getenv("API_BASIC_AUTH_PASSWORD"):
+        config_data.setdefault("api", {})["basic_auth_password"] = auth_password
 
     if rss_title := os.getenv("RSS_TITLE"):
         config_data.setdefault("rss", {})["title"] = rss_title

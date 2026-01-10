@@ -1,9 +1,11 @@
 """FastAPI routes for the status page API."""
 
+import secrets
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sqlalchemy.orm import Session
 
 from status_page.api.schemas import (
@@ -25,6 +27,8 @@ from status_page.models import Comment, Incident
 router = APIRouter(prefix="/api", tags=["api"])
 rss_router = APIRouter(prefix="/feed", tags=["rss"])
 
+security = HTTPBasic()
+
 
 def get_db() -> Session:
     """Dependency to get database session.
@@ -37,6 +41,41 @@ def get_db() -> Session:
         yield session
     finally:
         session.close()
+
+
+def verify_write_access(credentials: HTTPBasicCredentials = Depends(security)) -> None:
+    """Verify Basic Auth credentials for write operations.
+
+    Args:
+        credentials: HTTP Basic Auth credentials
+
+    Raises:
+        HTTPException: If authentication is required but credentials are invalid
+    """
+    from status_page.config import load_config
+
+    config = load_config()
+
+    # If no auth configured, allow all access
+    if not config.api.basic_auth_username or not config.api.basic_auth_password:
+        return
+
+    # Verify credentials using constant-time comparison to prevent timing attacks
+    correct_username = secrets.compare_digest(
+        credentials.username.encode("utf8"),
+        config.api.basic_auth_username.encode("utf8")
+    )
+    correct_password = secrets.compare_digest(
+        credentials.password.encode("utf8"),
+        config.api.basic_auth_password.encode("utf8")
+    )
+
+    if not (correct_username and correct_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Basic"},
+        )
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -88,7 +127,10 @@ def health_check(db: Session = Depends(get_db)) -> HealthResponse:
 
 
 @router.post("/poll")
-def trigger_poll(db: Session = Depends(get_db)) -> dict:
+def trigger_poll(
+    db: Session = Depends(get_db),
+    _auth: None = Depends(verify_write_access)
+) -> dict:
     """Manually trigger a status.dat poll.
 
     Args:
@@ -347,6 +389,7 @@ def add_comment(
     incident_id: int,
     comment: CommentCreate,
     db: Session = Depends(get_db),
+    _auth: None = Depends(verify_write_access)
 ) -> CommentResponse:
     """Add a comment to an incident.
 
@@ -393,6 +436,7 @@ def update_pir_url(
     incident_id: int,
     pir_data: PostIncidentReviewUpdate,
     db: Session = Depends(get_db),
+    _auth: None = Depends(verify_write_access)
 ) -> IncidentResponse:
     """Update the post-incident review URL for an incident.
 
