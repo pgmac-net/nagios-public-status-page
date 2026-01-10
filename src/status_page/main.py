@@ -1,5 +1,4 @@
-"""Main FastAPI application for the public status page."""
-
+#!/usr/bin/env python3
 import logging
 from pathlib import Path
 from contextlib import asynccontextmanager
@@ -9,9 +8,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+import uvicorn
+
 from status_page.api.routes import router, rss_router
 from status_page.collector.poller import StatusPoller
 from status_page.config import load_config
+
+"""Main FastAPI application for the public status page."""
+
 
 # Configure logging
 logging.basicConfig(
@@ -135,8 +139,6 @@ async def api_info() -> JSONResponse:
 
 
 if __name__ == "__main__":
-    import uvicorn
-
     uvicorn.run(
         "status_page.main:app",
         host=config.api.host,

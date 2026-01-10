@@ -4,6 +4,7 @@ import secrets
 from collections.abc import Generator
 from datetime import datetime
 from typing import cast
+from types import GeneratorType
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
@@ -32,7 +33,7 @@ rss_router = APIRouter(prefix="/feed", tags=["rss"])
 security = HTTPBasic()
 
 
-def get_db() -> Generator[Session, None, None]:
+def get_db() -> GeneratorType[Session]:
     """Dependency to get database session.
 
     Yields:
