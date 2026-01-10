@@ -45,7 +45,7 @@ header h1 {
     opacity: 0.9;
 }
 
-.btn-refresh {
+.btn-refresh, .btn-poll {
     background-color: rgba(255, 255, 255, 0.2);
     color: white;
     border: 1px solid rgba(255, 255, 255, 0.3);
@@ -56,8 +56,13 @@ header h1 {
     transition: all 0.3s ease;
 }
 
-.btn-refresh:hover {
+.btn-refresh:hover, .btn-poll:hover {
     background-color: rgba(255, 255, 255, 0.3);
+}
+
+.btn-poll:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 /* Warning Banner */

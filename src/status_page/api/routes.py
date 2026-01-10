@@ -87,6 +87,33 @@ def health_check(db: Session = Depends(get_db)) -> HealthResponse:
         raise HTTPException(status_code=500, detail=f"Health check failed: {exc}") from exc
 
 
+@router.post("/poll")
+def trigger_poll(db: Session = Depends(get_db)) -> dict:
+    """Manually trigger a status.dat poll.
+
+    Args:
+        db: Database session
+
+    Returns:
+        Poll results and statistics
+    """
+    from status_page.collector.poller import StatusPoller
+    from status_page.config import load_config
+
+    try:
+        config = load_config()
+        poller = StatusPoller(config)
+        results = poller.poll()
+
+        return {
+            "success": True,
+            "message": "Poll completed successfully",
+            "results": results,
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Poll failed: {exc}") from exc
+
+
 @router.get("/status", response_model=StatusSummary)
 def get_status(db: Session = Depends(get_db)) -> StatusSummary:
     """Get overall status summary.

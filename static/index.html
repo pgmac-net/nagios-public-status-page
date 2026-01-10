@@ -12,7 +12,10 @@
             <h1>System Status</h1>
             <div class="header-info">
                 <span id="last-update">Last updated: Loading...</span>
-                <button id="refresh-btn" class="btn-refresh" onclick="refreshData()">Refresh</button>
+                <div style="display: flex; gap: 10px;">
+                    <button id="refresh-btn" class="btn-refresh" onclick="refreshData()">Refresh</button>
+                    <button class="btn-poll" onclick="triggerManualPoll()">ðŸ”„ Poll Now</button>
+                </div>
             </div>
         </header>
 
@@ -26,7 +29,7 @@
             <h2>Overall Status</h2>
             <div class="status-grid">
                 <div class="status-card">
-                    <div class="status-icon hosts-icon">=¥</div>
+                    <div class="status-icon hosts-icon">=ï¿½</div>
                     <div class="status-info">
                         <h3>Hosts</h3>
                         <div class="status-counts">
@@ -41,7 +44,7 @@
                 </div>
 
                 <div class="status-card">
-                    <div class="status-icon services-icon">™</div>
+                    <div class="status-icon services-icon">ï¿½</div>
                     <div class="status-info">
                         <h3>Services</h3>
                         <div class="status-counts">
@@ -57,7 +60,7 @@
                 </div>
 
                 <div class="status-card">
-                    <div class="status-icon incidents-icon">=¨</div>
+                    <div class="status-icon incidents-icon">=ï¿½</div>
                     <div class="status-info">
                         <h3>Active Incidents</h3>
                         <div class="status-counts">
@@ -116,7 +119,7 @@
             <h3>Subscribe to Updates</h3>
             <div class="rss-links">
                 <a href="/feed/rss" class="rss-link" target="_blank">
-                    <span class="rss-icon">=á</span> RSS Feed (All Incidents)
+                    <span class="rss-icon">=ï¿½</span> RSS Feed (All Incidents)
                 </a>
             </div>
         </section>

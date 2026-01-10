@@ -28,6 +28,48 @@ function refreshData() {
     loadAllData();
 }
 
+// Trigger manual poll
+async function triggerManualPoll() {
+    const button = document.querySelector('.btn-poll');
+    if (!button) return;
+
+    // Disable button and show loading state
+    button.disabled = true;
+    button.textContent = 'Polling...';
+
+    try {
+        const response = await fetch(`${API_BASE}/poll`, {
+            method: 'POST'
+        });
+
+        if (!response.ok) {
+            throw new Error('Poll failed');
+        }
+
+        const data = await response.json();
+
+        // Show success message briefly
+        button.textContent = 'Poll Complete!';
+
+        // Reload all data to reflect updates
+        await loadAllData();
+
+        // Reset button after 2 seconds
+        setTimeout(() => {
+            button.disabled = false;
+            button.textContent = '🔄 Poll Now';
+        }, 2000);
+
+    } catch (error) {
+        console.error('Error triggering poll:', error);
+        button.textContent = 'Poll Failed';
+        setTimeout(() => {
+            button.disabled = false;
+            button.textContent = '🔄 Poll Now';
+        }, 2000);
+    }
+}
+
 // Start auto-refresh
 function startAutoRefresh() {
     if (autoRefreshTimer) {
