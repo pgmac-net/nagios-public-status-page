@@ -475,7 +475,7 @@ def update_pir_url(
 # RSS Feed Endpoints
 
 
-@rss_router.get("/rss")
+@rss_router.get("/rss.xml")
 def get_global_rss_feed(hours: int = 24, db: Session = Depends(get_db)) -> Response:
     """Get RSS feed for all recent incidents.
 
@@ -501,7 +501,7 @@ def get_global_rss_feed(hours: int = 24, db: Session = Depends(get_db)) -> Respo
         ) from exc
 
 
-@rss_router.get("/host/{host_name}/rss")
+@rss_router.get("/host/{host_name}/rss.xml")
 def get_host_rss_feed(
     host_name: str, hours: int = 24, db: Session = Depends(get_db)
 ) -> Response:
@@ -540,7 +540,7 @@ def get_host_rss_feed(
         ) from exc
 
 
-@rss_router.get("/service/{host_name}/{service_description}/rss")
+@rss_router.get("/service/{host_name}/{service_description}/rss.xml")
 def get_service_rss_feed(
     host_name: str,
     service_description: str,
