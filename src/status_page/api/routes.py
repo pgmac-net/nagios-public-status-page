@@ -106,8 +106,22 @@ def get_status(db: Session = Depends(get_db)) -> StatusSummary:
         parser.parse()
 
         # Get hosts and services
-        hosts = parser.get_hosts(hostgroups=config.nagios.hostgroups)
-        services = parser.get_services(servicegroups=config.nagios.servicegroups)
+        explicit_hosts = config.nagios.hosts if config.nagios.hosts else None
+        explicit_services = None
+        if config.nagios.services:
+            explicit_services = [
+                (svc.host_name, svc.service_description)
+                for svc in config.nagios.services
+            ]
+
+        hosts = parser.get_hosts(
+            hostgroups=config.nagios.hostgroups if config.nagios.hostgroups else None,
+            explicit_hosts=explicit_hosts,
+        )
+        services = parser.get_services(
+            servicegroups=config.nagios.servicegroups if config.nagios.servicegroups else None,
+            explicit_services=explicit_services,
+        )
 
         # Count host states
         hosts_up = sum(1 for h in hosts if h.get("current_state") == 0)
@@ -165,7 +179,11 @@ def get_hosts(db: Session = Depends(get_db)) -> list[HostStatusResponse]:
         parser = StatusDatParser(config.nagios.status_dat_path)
         parser.parse()
 
-        hosts = parser.get_hosts(hostgroups=config.nagios.hostgroups)
+        explicit_hosts = config.nagios.hosts if config.nagios.hosts else None
+        hosts = parser.get_hosts(
+            hostgroups=config.nagios.hostgroups if config.nagios.hostgroups else None,
+            explicit_hosts=explicit_hosts,
+        )
 
         state_names = {0: "UP", 1: "DOWN", 2: "UNREACHABLE"}
 
@@ -202,7 +220,17 @@ def get_services(db: Session = Depends(get_db)) -> list[ServiceStatusResponse]:
         parser = StatusDatParser(config.nagios.status_dat_path)
         parser.parse()
 
-        services = parser.get_services(servicegroups=config.nagios.servicegroups)
+        explicit_services = None
+        if config.nagios.services:
+            explicit_services = [
+                (svc.host_name, svc.service_description)
+                for svc in config.nagios.services
+            ]
+
+        services = parser.get_services(
+            servicegroups=config.nagios.servicegroups if config.nagios.servicegroups else None,
+            explicit_services=explicit_services,
+        )
 
         state_names = {0: "OK", 1: "WARNING", 2: "CRITICAL", 3: "UNKNOWN"}
 
