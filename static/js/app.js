@@ -55,7 +55,7 @@ async function checkStaleness() {
 
         // Update last update time
         if (data.last_poll_time) {
-            const lastUpdate = new Date(data.last_poll_time);
+            const lastUpdate = parseUTCDate(data.last_poll_time);
             document.getElementById('last-update').textContent =
                 `Last updated: ${formatDateTime(lastUpdate)}`;
         }
@@ -177,9 +177,9 @@ function createIncidentElement(incident) {
 
     const times = document.createElement('div');
     times.className = 'incident-times';
-    const startText = 'Started: ' + formatDateTime(new Date(incident.started_at));
+    const startText = 'Started: ' + formatDateTime(parseUTCDate(incident.started_at));
     const endText = incident.ended_at
-        ? ' | Ended: ' + formatDateTime(new Date(incident.ended_at))
+        ? ' | Ended: ' + formatDateTime(parseUTCDate(incident.ended_at))
         : ' | Still Active';
     times.textContent = startText + endText;
     div.appendChild(times);
@@ -255,7 +255,7 @@ function createHostElement(host) {
         check.style.fontSize = '0.85rem';
         check.style.color = '#a0aec0';
         check.style.marginTop = '8px';
-        check.textContent = `Last check: ${formatDateTime(new Date(host.last_check))}`;
+        check.textContent = `Last check: ${formatDateTime(parseUTCDate(host.last_check))}`;
         div.appendChild(check);
     }
 
@@ -330,7 +330,7 @@ function createServiceElement(service) {
         check.style.fontSize = '0.85rem';
         check.style.color = '#a0aec0';
         check.style.marginTop = '8px';
-        check.textContent = `Last check: ${formatDateTime(new Date(service.last_check))}`;
+        check.textContent = `Last check: ${formatDateTime(parseUTCDate(service.last_check))}`;
         div.appendChild(check);
     }
 
@@ -403,7 +403,7 @@ async function showIncidentDetail(incidentId) {
         const startedBold = document.createElement('strong');
         startedBold.textContent = 'Started: ';
         startedP.appendChild(startedBold);
-        startedP.appendChild(document.createTextNode(formatDateTime(new Date(incident.started_at))));
+        startedP.appendChild(document.createTextNode(formatDateTime(parseUTCDate(incident.started_at))));
         section2.appendChild(startedP);
 
         if (incident.ended_at) {
@@ -411,7 +411,7 @@ async function showIncidentDetail(incidentId) {
             const endedBold = document.createElement('strong');
             endedBold.textContent = 'Ended: ';
             endedP.appendChild(endedBold);
-            endedP.appendChild(document.createTextNode(formatDateTime(new Date(incident.ended_at))));
+            endedP.appendChild(document.createTextNode(formatDateTime(parseUTCDate(incident.ended_at))));
             section2.appendChild(endedP);
         } else {
             const statusP = document.createElement('p');
@@ -427,7 +427,7 @@ async function showIncidentDetail(incidentId) {
             const checkBold = document.createElement('strong');
             checkBold.textContent = 'Last Check: ';
             checkP.appendChild(checkBold);
-            checkP.appendChild(document.createTextNode(formatDateTime(new Date(incident.last_check))));
+            checkP.appendChild(document.createTextNode(formatDateTime(parseUTCDate(incident.last_check))));
             section2.appendChild(checkP);
         }
 
@@ -525,7 +525,7 @@ function createCommentElement(comment, isNagios) {
     date.className = 'comment-date';
     // Nagios comments use entry_time, regular comments use created_at
     const commentDate = isNagios ? comment.entry_time : comment.created_at;
-    date.textContent = formatDateTime(new Date(commentDate));
+    date.textContent = formatDateTime(parseUTCDate(commentDate));
     header.appendChild(date);
 
     div.appendChild(header);
@@ -585,6 +585,16 @@ async function submitComment(event) {
         console.error('Error submitting comment:', error);
         alert('Error submitting comment. Please try again.');
     }
+}
+
+// Utility: Parse UTC date string
+function parseUTCDate(dateString) {
+    // Backend returns naive datetime strings without timezone
+    // Treat them as UTC by appending 'Z' if not present
+    if (dateString && !dateString.endsWith('Z') && dateString.includes('T')) {
+        return new Date(dateString + 'Z');
+    }
+    return new Date(dateString);
 }
 
 // Utility: Format date/time
