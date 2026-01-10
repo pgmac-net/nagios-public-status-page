@@ -80,56 +80,86 @@ class StatusDatParser:
         return self.data
 
     def get_hosts(
-        self, hostgroups: list[str] | None = None
+        self,
+        hostgroups: list[str] | None = None,
+        explicit_hosts: list[str] | None = None,
     ) -> list[dict[str, Any]]:
-        """Get host status information, optionally filtered by hostgroups.
+        """Get host status information, filtered by hostgroups and/or explicit host list.
 
         Args:
-            hostgroups: List of hostgroup names to filter by. If None, return all hosts.
+            hostgroups: List of hostgroup names to filter by. If None, skip
+                        hostgroup filtering.
+            explicit_hosts: List of explicit host names to include. If None, skip
+                            explicit filtering.
 
         Returns:
             List of host status dictionaries
         """
         hosts = self.data.get("hoststatus", [])
 
-        if not hostgroups:
+        # If no filtering specified, return all hosts
+        if not hostgroups and not explicit_hosts:
             return hosts
 
         filtered_hosts = []
         for host in hosts:
-            host_groups = host.get("host_groups", "")
-            # host_groups is a comma-separated string
-            if host_groups:
-                groups = [g.strip() for g in host_groups.split(",")]
-                if any(hg in groups for hg in hostgroups):
-                    filtered_hosts.append(host)
+            host_name = host.get("host_name", "")
+
+            # Check if host matches explicit list
+            if explicit_hosts and host_name in explicit_hosts:
+                filtered_hosts.append(host)
+                continue
+
+            # Check if host matches hostgroup
+            if hostgroups:
+                host_groups = host.get("host_groups", "")
+                if host_groups:
+                    groups = [g.strip() for g in host_groups.split(",")]
+                    if any(hg in groups for hg in hostgroups):
+                        filtered_hosts.append(host)
 
         return filtered_hosts
 
     def get_services(
-        self, servicegroups: list[str] | None = None
+        self,
+        servicegroups: list[str] | None = None,
+        explicit_services: list[tuple[str, str]] | None = None,
     ) -> list[dict[str, Any]]:
-        """Get service status information, optionally filtered by servicegroups.
+        """Get service status information, filtered by servicegroups and/or explicit service list.
 
         Args:
-            servicegroups: List of servicegroup names to filter by. If None, return all services.
+            servicegroups: List of servicegroup names to filter by. If None, skip
+                           servicegroup filtering.
+            explicit_services: List of (host_name, service_description) tuples to include.
+                             If None, skip explicit filtering.
 
         Returns:
             List of service status dictionaries
         """
         services = self.data.get("servicestatus", [])
 
-        if not servicegroups:
+        # If no filtering specified, return all services
+        if not servicegroups and not explicit_services:
             return services
 
         filtered_services = []
         for service in services:
-            service_groups = service.get("service_groups", "")
-            # service_groups is a comma-separated string
-            if service_groups:
-                groups = [g.strip() for g in service_groups.split(",")]
-                if any(sg in groups for sg in servicegroups):
+            host_name = service.get("host_name", "")
+            service_description = service.get("service_description", "")
+
+            # Check if service matches explicit list
+            if explicit_services:
+                if (host_name, service_description) in explicit_services:
                     filtered_services.append(service)
+                    continue
+
+            # Check if service matches servicegroup
+            if servicegroups:
+                service_groups = service.get("service_groups", "")
+                if service_groups:
+                    groups = [g.strip() for g in service_groups.split(",")]
+                    if any(sg in groups for sg in servicegroups):
+                        filtered_services.append(service)
 
         return filtered_services
 

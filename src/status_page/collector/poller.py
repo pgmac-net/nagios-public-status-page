@@ -88,7 +88,11 @@ class StatusPoller:
             tracker = IncidentTracker(session)
 
             # Process hosts
-            hosts = self.parser.get_hosts(hostgroups=self.config.nagios.hostgroups)
+            explicit_hosts = self.config.nagios.hosts if self.config.nagios.hosts else None
+            hosts = self.parser.get_hosts(
+                hostgroups=self.config.nagios.hostgroups if self.config.nagios.hostgroups else None,
+                explicit_hosts=explicit_hosts,
+            )
             for host in hosts:
                 incident = tracker.process_host(host)
                 results["hosts_processed"] += 1
@@ -102,8 +106,20 @@ class StatusPoller:
                         results["incidents_created"] += 1
 
             # Process services
+            explicit_services = None
+            if self.config.nagios.services:
+                explicit_services = [
+                    (svc.host_name, svc.service_description)
+                    for svc in self.config.nagios.services
+                ]
+            servicegroups_param = (
+                self.config.nagios.servicegroups
+                if self.config.nagios.servicegroups
+                else None
+            )
             services = self.parser.get_services(
-                servicegroups=self.config.nagios.servicegroups
+                servicegroups=servicegroups_param,
+                explicit_services=explicit_services,
             )
             for service in services:
                 incident = tracker.process_service(service)

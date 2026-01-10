@@ -58,7 +58,11 @@ pip install -e .
 
 ## Configuration
 
-### 1. Configure Nagios Hostgroups and Servicegroups
+### 1. Choose Your Filtering Method
+
+The public status page supports two methods for filtering which hosts and services to display:
+
+#### Method A: Hostgroups and Servicegroups (Recommended)
 
 In your Nagios configuration, create hostgroups and servicegroups for public display:
 
@@ -79,6 +83,33 @@ define service {
     ...
 }
 ```
+
+**Note**: This method requires that Nagios writes `host_groups` and `service_groups` fields to status.dat. Some Nagios configurations may not include these fields.
+
+#### Method B: Explicit Host and Service Lists
+
+If your Nagios doesn't write group fields to status.dat, you can explicitly list which hosts and services to monitor in `config.yaml`:
+
+```yaml
+nagios:
+  status_dat_path: "/usr/local/nagios/var/status.dat"
+  hosts:
+    - "webserver01"
+    - "dbserver01"
+  services:
+    - host_name: "macro"
+      service_description: "plexweb"
+    - host_name: "webserver01"
+      service_description: "HTTP"
+```
+
+You can also use environment variables:
+```bash
+NAGIOS_HOSTS="webserver01,dbserver01"
+NAGIOS_SERVICES="macro:plexweb,webserver01:HTTP"
+```
+
+**Tip**: You can combine both methods - the status page will include hosts/services that match *either* the groups *or* the explicit lists.
 
 ### 2. Configure the Application
 

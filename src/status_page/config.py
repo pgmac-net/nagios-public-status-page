@@ -8,19 +8,38 @@ import yaml
 from pydantic import BaseModel, Field
 
 
+class ServiceSpec(BaseModel):
+    """Specification for a service to monitor."""
+
+    host_name: str = Field(..., description="Host name")
+    service_description: str = Field(..., description="Service description")
+
+
 class NagiosConfig(BaseModel):
     """Nagios-related configuration."""
 
     status_dat_path: str = Field(..., description="Path to Nagios status.dat file")
-    hostgroups: list[str] = Field(default_factory=list, description="Hostgroups to monitor")
-    servicegroups: list[str] = Field(default_factory=list, description="Servicegroups to monitor")
+    hostgroups: list[str] = Field(
+        default_factory=list, description="Hostgroups to monitor"
+    )
+    servicegroups: list[str] = Field(
+        default_factory=list, description="Servicegroups to monitor"
+    )
+    hosts: list[str] = Field(
+        default_factory=list, description="Explicit list of host names to monitor"
+    )
+    services: list[ServiceSpec] = Field(
+        default_factory=list, description="Explicit list of services to monitor"
+    )
 
 
 class PollingConfig(BaseModel):
     """Polling configuration."""
 
     interval_seconds: int = Field(default=300, description="How often to poll status.dat")
-    staleness_threshold_seconds: int = Field(default=600, description="Data age threshold for staleness warning")
+    staleness_threshold_seconds: int = Field(
+        default=600, description="Data age threshold for staleness warning"
+    )
 
 
 class DatabaseConfig(BaseModel):
@@ -34,7 +53,9 @@ class APIConfig(BaseModel):
 
     host: str = Field(default="0.0.0.0", description="API host to bind to")
     port: int = Field(default=8000, description="API port to listen on")
-    cors_origins: list[str] = Field(default_factory=lambda: ["*"], description="CORS allowed origins")
+    cors_origins: list[str] = Field(
+        default_factory=lambda: ["*"], description="CORS allowed origins"
+    )
 
 
 class RSSConfig(BaseModel):
@@ -55,7 +76,9 @@ class IncidentsConfig(BaseModel):
 class CommentsConfig(BaseModel):
     """Comments configuration."""
 
-    pull_nagios_comments: bool = Field(default=True, description="Whether to pull comments from Nagios")
+    pull_nagios_comments: bool = Field(
+        default=True, description="Whether to pull comments from Nagios"
+    )
 
 
 class Config(BaseModel):
@@ -108,6 +131,23 @@ def load_config(config_path: str | Path = "config.yaml") -> Config:
         config_data.setdefault("nagios", {})["servicegroups"] = [
             sg.strip() for sg in servicegroups.split(",")
         ]
+
+    if hosts := os.getenv("NAGIOS_HOSTS"):
+        config_data.setdefault("nagios", {})["hosts"] = [
+            h.strip() for h in hosts.split(",")
+        ]
+
+    if services := os.getenv("NAGIOS_SERVICES"):
+        # Format: "host1:service1,host2:service2"
+        service_list = []
+        for svc in services.split(","):
+            if ":" in svc:
+                host, service = svc.split(":", 1)
+                service_list.append({
+                    "host_name": host.strip(),
+                    "service_description": service.strip()
+                })
+        config_data.setdefault("nagios", {})["services"] = service_list
 
     if poll_interval := os.getenv("POLL_INTERVAL_SECONDS"):
         config_data.setdefault("polling", {})["interval_seconds"] = int(poll_interval)

@@ -1,9 +1,25 @@
 nagios:
   status_dat_path: "/usr/local/nagios/var/status.dat"
+
+  # Filter by hostgroups (requires host_groups field in status.dat)
   hostgroups:
     - "public-status"
+
+  # Filter by servicegroups (requires service_groups field in status.dat)
   servicegroups:
     - "public-status-services"
+
+  # Explicitly list hosts to monitor (alternative to hostgroups)
+  hosts: []
+    # - "webserver01"
+    # - "dbserver01"
+
+  # Explicitly list services to monitor (alternative to servicegroups)
+  services: []
+    # - host_name: "macro"
+    #   service_description: "plexweb"
+    # - host_name: "webserver01"
+    #   service_description: "HTTP"
 
 polling:
   interval_seconds: 300  # Poll every 5 minutes
