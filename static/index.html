@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Status</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>System Status</h1>
+            <div class="header-info">
+                <span id="last-update">Last updated: Loading...</span>
+                <button id="refresh-btn" class="btn-refresh" onclick="refreshData()">Refresh</button>
+            </div>
+        </header>
+
+        <!-- Staleness Warning -->
+        <div id="staleness-warning" class="warning-banner" style="display: none;">
+            <strong>Warning:</strong> Status data may be stale. Last update was <span id="staleness-time"></span> ago.
+        </div>
+
+        <!-- Overall Status Summary -->
+        <section class="status-summary">
+            <h2>Overall Status</h2>
+            <div class="status-grid">
+                <div class="status-card">
+                    <div class="status-icon hosts-icon">=¥</div>
+                    <div class="status-info">
+                        <h3>Hosts</h3>
+                        <div class="status-counts">
+                            <span class="status-up" id="hosts-up">0</span> /
+                            <span class="status-down" id="hosts-down">0</span> /
+                            <span class="status-unreachable" id="hosts-unreachable">0</span>
+                        </div>
+                        <div class="status-labels">
+                            <small>Up / Down / Unreachable</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="status-card">
+                    <div class="status-icon services-icon">™</div>
+                    <div class="status-info">
+                        <h3>Services</h3>
+                        <div class="status-counts">
+                            <span class="status-ok" id="services-ok">0</span> /
+                            <span class="status-warning" id="services-warning">0</span> /
+                            <span class="status-critical" id="services-critical">0</span> /
+                            <span class="status-unknown" id="services-unknown">0</span>
+                        </div>
+                        <div class="status-labels">
+                            <small>OK / Warning / Critical / Unknown</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="status-card">
+                    <div class="status-icon incidents-icon">=¨</div>
+                    <div class="status-info">
+                        <h3>Active Incidents</h3>
+                        <div class="status-counts">
+                            <span class="status-incident" id="active-incidents">0</span>
+                        </div>
+                        <div class="status-labels">
+                            <small>Currently active</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Incidents List -->
+        <section class="incidents-section">
+            <div class="section-header">
+                <h2>Incidents</h2>
+                <div class="incident-filters">
+                    <label>
+                        <input type="radio" name="incident-filter" value="active" checked onchange="filterIncidents()">
+                        Active Only
+                    </label>
+                    <label>
+                        <input type="radio" name="incident-filter" value="recent" onchange="filterIncidents()">
+                        Recent (24h)
+                    </label>
+                    <label>
+                        <input type="radio" name="incident-filter" value="all" onchange="filterIncidents()">
+                        All (7 days)
+                    </label>
+                </div>
+            </div>
+            <div id="incidents-list" class="incidents-list">
+                <div class="loading">Loading incidents...</div>
+            </div>
+        </section>
+
+        <!-- Host Status -->
+        <section class="hosts-section">
+            <h2>Host Status</h2>
+            <div id="hosts-list" class="hosts-list">
+                <div class="loading">Loading hosts...</div>
+            </div>
+        </section>
+
+        <!-- Service Status -->
+        <section class="services-section">
+            <h2>Service Status</h2>
+            <div id="services-list" class="services-list">
+                <div class="loading">Loading services...</div>
+            </div>
+        </section>
+
+        <!-- RSS Feed Links -->
+        <section class="rss-section">
+            <h3>Subscribe to Updates</h3>
+            <div class="rss-links">
+                <a href="/feed/rss" class="rss-link" target="_blank">
+                    <span class="rss-icon">=á</span> RSS Feed (All Incidents)
+                </a>
+            </div>
+        </section>
+    </div>
+
+    <!-- Incident Detail Modal -->
+    <div id="incident-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeIncidentModal()">&times;</span>
+            <h2>Incident Details</h2>
+            <div id="incident-detail">
+                <div class="loading">Loading...</div>
+            </div>
+
+            <!-- Comment Form -->
+            <div class="comment-form">
+                <h3>Add Status Update</h3>
+                <form id="comment-form" onsubmit="submitComment(event)">
+                    <input type="hidden" id="comment-incident-id" value="">
+                    <div class="form-group">
+                        <label for="comment-author">Your Name:</label>
+                        <input type="text" id="comment-author" name="author" required maxlength="255">
+                    </div>
+                    <div class="form-group">
+                        <label for="comment-text">Comment:</label>
+                        <textarea id="comment-text" name="comment_text" rows="4" required></textarea>
+                    </div>
+                    <button type="submit" class="btn-primary">Submit Comment</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>Powered by Nagios Public Status Page</p>
+        <p>Data refreshes every 5 minutes</p>
+    </footer>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

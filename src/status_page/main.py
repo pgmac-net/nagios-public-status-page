@@ -1,10 +1,12 @@
 """Main FastAPI application for the public status page."""
 
 import logging
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from status_page.api.routes import router, rss_router
 from status_page.collector.poller import StatusPoller
@@ -49,6 +51,11 @@ app.add_middleware(
 app.include_router(router)
 app.include_router(rss_router)
 
+# Mount static files
+static_dir = Path(__file__).parent.parent.parent / "static"
+if static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
 # Global poller instance
 poller: StatusPoller | None = None
 
@@ -84,20 +91,21 @@ async def shutdown_event() -> None:
 
 
 @app.get("/")
-async def root() -> JSONResponse:
-    """Root endpoint with API information.
+async def root() -> FileResponse | JSONResponse:
+    """Serve the main dashboard page.
 
     Returns:
-        JSON response with API info
+        HTML file response or JSON if static files not found
     """
-    return JSONResponse(
-        content={
-            "message": "Nagios Public Status Page API",
-            "version": "1.0.0",
-            "docs": "/api/docs",
-            "health": "/api/health",
-        }
-    )
+    index_path = static_dir / "index.html"
+    if index_path.exists():
+        return FileResponse(index_path)
+    return JSONResponse(content={
+        "message": "Nagios Public Status Page API",
+        "version": "1.0.0",
+        "docs": "/api/docs",
+        "health": "/api/health",
+    })
 
 
 @app.get("/api")

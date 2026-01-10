@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  status-page:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nagios-status-page
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount Nagios status.dat (read-only)
+      - /usr/local/nagios/var/status.dat:/nagios/status.dat:ro
+      # Mount database directory for persistence
+      - ./data:/app/data
+      # Mount config (optional - can use environment variables instead)
+      - ./config.yaml:/app/config.yaml:ro
+    environment:
+      # Override config.yaml settings with environment variables
+      - NAGIOS_STATUS_DAT_PATH=/nagios/status.dat
+      - DATABASE_PATH=/app/data/status.db
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      # Hostgroups and servicegroups (comma-separated)
+      - NAGIOS_HOSTGROUPS=public-status
+      - NAGIOS_SERVICEGROUPS=public-status-services
+      # Polling configuration
+      - POLLING_INTERVAL_SECONDS=300
+      - POLLING_STALENESS_THRESHOLD_SECONDS=600
+      # RSS configuration
+      - RSS_TITLE=System Status
+      - RSS_LINK=https://status.example.com
+      - RSS_DESCRIPTION=Live system status updates
+      - RSS_MAX_ITEMS=50
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      - status-net
+
+networks:
+  status-net:
+    driver: bridge
+
+volumes:
+  status-data:
+    driver: local
