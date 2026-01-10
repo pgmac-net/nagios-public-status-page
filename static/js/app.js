@@ -9,42 +9,6 @@ let autoRefreshTimer = null;
 // Basic Auth credentials (stored in memory only)
 let authCredentials = null;
 
-// Helper to get auth headers
-function getAuthHeaders() {
-    if (authCredentials) {
-        const encoded = btoa(`${authCredentials.username}:${authCredentials.password}`);
-        return {
-            'Authorization': `Basic ${encoded}`
-        };
-    }
-    return {};
-}
-
-// Prompt for credentials if needed
-function promptForCredentials() {
-    const username = prompt('Authentication required.\n\nUsername:');
-    if (!username) return false;
-
-    const password = prompt('Password:');
-    if (!password) return false;
-
-    authCredentials = { username, password };
-    return true;
-}
-
-// Handle 401 errors by prompting for credentials
-async function handleAuthError(response, retryFn) {
-    if (response.status === 401) {
-        authCredentials = null; // Clear invalid credentials
-        if (promptForCredentials()) {
-            return await retryFn();
-        } else {
-            throw new Error('Authentication cancelled');
-        }
-    }
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-}
-
 // Theme management
 function getSystemTheme() {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -89,6 +53,42 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e)
         applyTheme('system');
     }
 });
+
+// Helper to get auth headers
+function getAuthHeaders() {
+    if (authCredentials) {
+        const encoded = btoa(`${authCredentials.username}:${authCredentials.password}`);
+        return {
+            'Authorization': `Basic ${encoded}`
+        };
+    }
+    return {};
+}
+
+// Prompt for credentials if needed
+function promptForCredentials() {
+    const username = prompt('Authentication required.\n\nUsername:');
+    if (!username) return false;
+
+    const password = prompt('Password:');
+    if (!password) return false;
+
+    authCredentials = { username, password };
+    return true;
+}
+
+// Handle 401 errors by prompting for credentials
+async function handleAuthError(response, retryFn) {
+    if (response.status === 401) {
+        authCredentials = null; // Clear invalid credentials
+        if (promptForCredentials()) {
+            return await retryFn();
+        } else {
+            throw new Error('Authentication cancelled');
+        }
+    }
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+}
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
