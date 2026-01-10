@@ -1,5 +1,4 @@
 name: App test, build and publish to PyPI
-run-name: Test, lint and typecheck
 on:
   push:
     branches: ["main"]
