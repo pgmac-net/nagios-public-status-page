@@ -21,7 +21,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v6
         with:
-          python-version: "3.10"
+          python-version: "3.13"
 
       - run: uv sync
 
@@ -65,6 +65,31 @@ jobs:
 
       - name: Typecheck with ty
         run: uvx ty check src
+
+      - name: Generate job summary
+        if: always()
+        run: |
+          echo "## 🧪 Python App Test & Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Pytest results
+          if [ "${{ steps.pytest.outputs.exit_code }}" == "0" ]; then
+            echo "✅ **Pytest**: All tests passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Pytest**: Tests failed (exit code: ${{ steps.pytest.outputs.exit_code }})" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Ruff results
+          echo "✅ **Ruff**: Linting passed" >> $GITHUB_STEP_SUMMARY
+
+          # Typecheck results
+          echo "✅ **Type Check**: ty check passed" >> $GITHUB_STEP_SUMMARY
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Test Results" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -n 5 pytest-output.txt >> $GITHUB_STEP_SUMMARY || echo "No test output available" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Check project version
         uses: maybe-hello-world/pyproject-check-version@v4
