@@ -2,6 +2,7 @@
 
 import logging
 from pathlib import Path
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,6 +20,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Global poller instance
+poller: StatusPoller | None = None
+
 # Load configuration
 try:
     config = load_config()
@@ -29,6 +33,35 @@ except Exception as exc:
     logger.error("Failed to load configuration: %s", exc)
     raise
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Start the background poller on application startup."""
+    global poller
+    logger.info("Starting application...")
+
+    try:
+        # Start the background poller
+        poller = StatusPoller(config)
+        poller.start()
+        logger.info("Background poller started successfully")
+    except Exception as exc:
+        logger.error("Failed to start background poller: %s", exc)
+        raise
+
+    yield  # Do application stuff
+
+    """Stop the background poller on application shutdown."""
+    logger.info("Shutting down application...")
+
+    if poller:
+        try:
+            poller.stop()
+            logger.info("Background poller stopped successfully")
+        except Exception as exc:
+            logger.error("Error stopping background poller: %s", exc)
+
+
 # Create FastAPI app
 app = FastAPI(
     title="Nagios Public Status Page",
@@ -36,6 +69,7 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/api/docs",
     redoc_url="/api/redoc",
+    lifespan=lifespan
 )
 
 # Add CORS middleware
@@ -55,39 +89,6 @@ app.include_router(rss_router)
 static_dir = Path(__file__).parent.parent.parent / "static"
 if static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
-
-# Global poller instance
-poller: StatusPoller | None = None
-
-
-@app.on_event("startup")
-async def startup_event() -> None:
-    """Start the background poller on application startup."""
-    global poller
-    logger.info("Starting application...")
-
-    try:
-        # Start the background poller
-        poller = StatusPoller(config)
-        poller.start()
-        logger.info("Background poller started successfully")
-    except Exception as exc:
-        logger.error("Failed to start background poller: %s", exc)
-        raise
-
-
-@app.on_event("shutdown")
-async def shutdown_event() -> None:
-    """Stop the background poller on application shutdown."""
-    global poller
-    logger.info("Shutting down application...")
-
-    if poller:
-        try:
-            poller.stop()
-            logger.info("Background poller stopped successfully")
-        except Exception as exc:
-            logger.error("Error stopping background poller: %s", exc)
 
 
 @app.get("/", response_model=None)
