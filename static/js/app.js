@@ -623,3 +623,13 @@ window.onclick = function(event) {
         closeIncidentModal();
     }
 };
+
+// Close modal when pressing Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape' || event.key === 'Esc') {
+        const modal = document.getElementById('incident-modal');
+        if (modal && modal.style.display === 'flex') {
+            closeIncidentModal();
+        }
+    }
+});
