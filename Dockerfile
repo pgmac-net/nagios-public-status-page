@@ -9,12 +9,11 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
-RUN useradd -m -u 1000 statuspage && \
-    mkdir -p /app/data && \
-    chown -R statuspage:statuspage /app
+RUN useradd -m -u 1000 statuspage
 
-# Set working directory
+# Set working directory and ensure ownership
 WORKDIR /app
+RUN chown -R statuspage:statuspage /app
 
 # Copy dependency files
 COPY --chown=statuspage:statuspage pyproject.toml ./
@@ -23,6 +22,9 @@ COPY --chown=statuspage:statuspage src/ ./src/
 
 # Switch to non-root user for installation
 USER statuspage
+
+# Create data directory with correct permissions
+RUN mkdir -p /app/data
 
 # Install dependencies using uv sync (creates venv with correct Python paths)
 RUN uv sync --no-dev
