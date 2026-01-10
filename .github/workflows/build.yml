@@ -1,4 +1,4 @@
-name: Build traffcap
+name: Build nagios-public-status-page
 
 on:
   push:
@@ -65,7 +65,7 @@ jobs:
         uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
         with:
           images: |
-            centurix/traffcap
+            pgmac/nagios-public-status-page
           tags: |
             # minimal (short sha)
             type=sha
