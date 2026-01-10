@@ -90,12 +90,13 @@ jobs:
           tail -n 5 pytest-output.txt >> $GITHUB_STEP_SUMMARY || echo "No test output available" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
-      - name: Check project version
-        uses: maybe-hello-world/pyproject-check-version@v4
-        id: versioncheck
-        with:
-          pyproject-path: "./pyproject.toml"
+      # Uncomment after first successful publish to PyPI
+      # - name: Check project version
+      #   uses: maybe-hello-world/pyproject-check-version@v4
+      #   id: versioncheck
+      #   with:
+      #     pyproject-path: "./pyproject.toml"
 
       - name: Publish the pypi project
-        if: steps.versioncheck.outputs.local_version_is_higher == 'true'
+        # if: steps.versioncheck.outputs.local_version_is_higher == 'true'
         run: uv build && uv publish -t ${{ secrets.PYPI_TOKEN }}
