@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime
-from typing import Any
+from typing import TypedDict
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy.orm import Session
@@ -16,6 +16,19 @@ from status_page.parser.status_dat import StatusDatParser
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+class PollResults(TypedDict):
+    """Type definition for poll results dictionary."""
+
+    timestamp: datetime
+    hosts_processed: int
+    services_processed: int
+    incidents_created: int
+    incidents_updated: int
+    incidents_closed: int
+    comments_processed: int
+    errors: list[str]
 
 
 class StatusPoller:
@@ -43,7 +56,7 @@ class StatusPoller:
         """
         return self.db.get_session()
 
-    def poll(self) -> dict[str, Any]:
+    def poll(self) -> PollResults:
         """Poll status.dat and update incident tracking.
 
         Returns:
@@ -51,7 +64,7 @@ class StatusPoller:
         """
         logger.info("Starting status.dat poll")
         session = self._get_session()
-        results = {
+        results: PollResults = {
             "timestamp": datetime.now(),
             "hosts_processed": 0,
             "services_processed": 0,

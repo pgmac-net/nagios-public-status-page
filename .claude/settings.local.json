@@ -4,7 +4,8 @@
       "Bash(uv run ruff:*)",
       "Bash(uv run pylint:*)",
       "Bash(uv run pytest:*)",
-      "Bash(uv sync:*)"
+      "Bash(uv sync:*)",
+      "Bash(uvx ty check:*)"
     ],
     "deny": [],
     "ask": []

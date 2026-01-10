@@ -74,7 +74,7 @@ app = FastAPI(
 
 # Add CORS middleware
 app.add_middleware(
-    CORSMiddleware,
+    CORSMiddleware,  # ty: ignore[invalid-argument-type]
     allow_origins=config.api.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],

@@ -1,7 +1,9 @@
 """FastAPI routes for the status page API."""
 
 import secrets
+from collections.abc import Generator
 from datetime import datetime
+from typing import cast
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
@@ -30,7 +32,7 @@ rss_router = APIRouter(prefix="/feed", tags=["rss"])
 security = HTTPBasic()
 
 
-def get_db() -> Session:
+def get_db() -> Generator[Session, None, None]:
     """Dependency to get database session.
 
     Yields:
@@ -114,9 +116,10 @@ def health_check(db: Session = Depends(get_db)) -> HealthResponse:
         if active_count > 0:
             status = "degraded"
 
+        poll_time = cast(datetime, last_poll.last_poll_time) if last_poll else None
         return HealthResponse(
             status=status,
-            last_poll_time=last_poll.last_poll_time if last_poll else None,
+            last_poll_time=poll_time,
             status_dat_age_seconds=age_seconds,
             data_is_stale=is_stale,
             active_incidents_count=active_count,
@@ -213,6 +216,7 @@ def get_status(db: Session = Depends(get_db)) -> StatusSummary:
         last_poll = poller.get_last_poll()
         is_stale = poller.is_data_stale()
 
+        poll_time = cast(datetime, last_poll.last_poll_time) if last_poll else None
         return StatusSummary(
             total_hosts=len(hosts),
             hosts_up=hosts_up,
@@ -224,7 +228,7 @@ def get_status(db: Session = Depends(get_db)) -> StatusSummary:
             services_critical=services_critical,
             services_unknown=services_unknown,
             active_incidents=active_incidents,
-            last_poll=last_poll.last_poll_time if last_poll else None,
+            last_poll=poll_time,
             data_is_stale=is_stale,
         )
     except Exception as exc:
