@@ -12,6 +12,7 @@ permissions:
   packages: write
   attestations: write
   id-token: write
+  pull-requests: write
 
 jobs:
   lint:
@@ -95,3 +96,51 @@ jobs:
           subject-name: ghcr.io/${{ env.IMAGE_NAME}}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
+
+      - name: Comment PR with build results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        env:
+          GHCR_TAGS: ${{ steps.meta_ghcr.outputs.tags }}
+          DOCKER_TAGS: ${{ steps.meta_docker.outputs.tags }}
+          DIGEST: ${{ steps.push.outputs.digest }}
+        with:
+          script: |
+            const ghcrTags = process.env.GHCR_TAGS;
+            const dockerTags = process.env.DOCKER_TAGS;
+            const digest = process.env.DIGEST;
+
+            const body = `## 🐳 Docker Build Results
+
+            ✅ Docker images successfully built and pushed!
+
+            ### 📦 GHCR (GitHub Container Registry)
+            \`\`\`
+            ${ghcrTags}
+            \`\`\`
+
+            ### 🐋 Docker Hub
+            \`\`\`
+            ${dockerTags}
+            \`\`\`
+
+            ### 🔐 Image Digest
+            \`\`\`
+            ${digest}
+            \`\`\`
+
+            ### 📥 Pull Commands
+            \`\`\`bash
+            # From GHCR
+            docker pull ${ghcrTags.split('\n')[0]}
+
+            # From Docker Hub
+            docker pull ${dockerTags.split('\n')[0]}
+            \`\`\``;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
