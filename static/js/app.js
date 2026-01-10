@@ -152,6 +152,15 @@ function createIncidentElement(incident) {
     state.textContent = incident.state;
     header.appendChild(state);
 
+    // Show acknowledgement badge if incident is acknowledged
+    if (incident.acknowledged) {
+        const ackBadge = document.createElement('span');
+        ackBadge.className = 'ack-badge';
+        ackBadge.textContent = '✓ Acknowledged';
+        ackBadge.title = 'This incident has been acknowledged';
+        header.appendChild(ackBadge);
+    }
+
     div.appendChild(header);
 
     const info = document.createElement('div');
@@ -367,6 +376,15 @@ async function showIncidentDetail(incidentId) {
         stateSpan.className = `incident-state state-${incident.state.toLowerCase()}`;
         stateSpan.textContent = incident.state;
         section1.appendChild(stateSpan);
+
+        // Show acknowledgement badge if incident is acknowledged
+        if (incident.acknowledged) {
+            const ackBadge = document.createElement('span');
+            ackBadge.className = 'ack-badge';
+            ackBadge.textContent = '✓ Acknowledged';
+            ackBadge.title = 'This incident has been acknowledged';
+            section1.appendChild(ackBadge);
+        }
 
         detailEl.appendChild(section1);
 

@@ -23,6 +23,7 @@ class Incident(Base):
     last_check = Column(DateTime, nullable=True)
     plugin_output = Column(Text, nullable=True)
     post_incident_review_url = Column(String(512), nullable=True)  # Link to PIR document
+    acknowledged = Column(Integer, default=0, nullable=False)  # 0=not acked, 1=acked
 
     # Relationships
     comments = relationship("Comment", back_populates="incident", cascade="all, delete-orphan")
@@ -52,6 +53,7 @@ class Incident(Base):
             "last_check": self.last_check.isoformat() if self.last_check else None,
             "plugin_output": self.plugin_output,
             "post_incident_review_url": self.post_incident_review_url,
+            "acknowledged": bool(self.acknowledged),
             "is_active": self.is_active,
         }
 

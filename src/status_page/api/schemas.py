@@ -18,6 +18,7 @@ class IncidentResponse(BaseModel):
     last_check: datetime | None
     plugin_output: str | None
     post_incident_review_url: str | None
+    acknowledged: bool
     is_active: bool
 
     class Config:

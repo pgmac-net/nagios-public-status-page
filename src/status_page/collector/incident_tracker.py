@@ -67,6 +67,7 @@ class IncidentTracker:
         current_state = host_data.get("current_state")
         last_check = host_data.get("last_check")
         plugin_output = host_data.get("plugin_output", "")
+        acknowledged = host_data.get("problem_has_been_acknowledged", 0)
 
         if not host_name or current_state is None:
             return None
@@ -94,6 +95,7 @@ class IncidentTracker:
                 existing.state = state_name
                 existing.last_check = check_time
                 existing.plugin_output = plugin_output
+                existing.acknowledged = acknowledged
                 self.session.commit()
                 return existing
 
@@ -106,6 +108,7 @@ class IncidentTracker:
                 started_at=check_time,
                 last_check=check_time,
                 plugin_output=plugin_output,
+                acknowledged=acknowledged,
             )
             self.session.add(incident)
             self.session.commit()
@@ -133,6 +136,7 @@ class IncidentTracker:
         current_state = service_data.get("current_state")
         last_check = service_data.get("last_check")
         plugin_output = service_data.get("plugin_output", "")
+        acknowledged = service_data.get("problem_has_been_acknowledged", 0)
 
         if not host_name or not service_description or current_state is None:
             return None
@@ -161,6 +165,7 @@ class IncidentTracker:
                 existing.state = state_name
                 existing.last_check = check_time
                 existing.plugin_output = plugin_output
+                existing.acknowledged = acknowledged
                 self.session.commit()
                 return existing
 
@@ -173,6 +178,7 @@ class IncidentTracker:
                 started_at=check_time,
                 last_check=check_time,
                 plugin_output=plugin_output,
+                acknowledged=acknowledged,
             )
             self.session.add(incident)
             self.session.commit()
