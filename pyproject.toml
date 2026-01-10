@@ -1,7 +1,7 @@
 [project]
 name = "status-page"
 version = "0.1.0"
-description = "Add your description here"
+description = "A Public facing Status Page that gets details from configurable Nagios hosts and/or services"
 readme = "README.md"
 authors = [
     { name = "Paul Macdonnell", email = "pgmac@pgmac.net" }
