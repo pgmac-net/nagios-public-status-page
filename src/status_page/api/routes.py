@@ -13,6 +13,7 @@ from status_page.api.schemas import (
     HostStatusResponse,
     IncidentResponse,
     IncidentWithComments,
+    NagiosCommentResponse,
     PostIncidentReviewUpdate,
     ServiceStatusResponse,
     StatusSummary,
@@ -302,7 +303,9 @@ def get_incident(incident_id: int, db: Session = Depends(get_db)) -> IncidentWit
         return IncidentWithComments(
             incident=IncidentResponse.model_validate(incident),
             comments=[CommentResponse.model_validate(c) for c in incident.comments],
-            nagios_comments=[CommentResponse.model_validate(c) for c in incident.nagios_comments],
+            nagios_comments=[
+                NagiosCommentResponse.model_validate(c) for c in incident.nagios_comments
+            ],
         )
     except HTTPException:
         raise

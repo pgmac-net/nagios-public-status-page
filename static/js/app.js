@@ -523,14 +523,17 @@ function createCommentElement(comment, isNagios) {
 
     const date = document.createElement('span');
     date.className = 'comment-date';
-    date.textContent = formatDateTime(new Date(comment.created_at));
+    // Nagios comments use entry_time, regular comments use created_at
+    const commentDate = isNagios ? comment.entry_time : comment.created_at;
+    date.textContent = formatDateTime(new Date(commentDate));
     header.appendChild(date);
 
     div.appendChild(header);
 
     const text = document.createElement('div');
     text.className = 'comment-text';
-    text.textContent = comment.comment_text;
+    // Nagios comments use comment_data, regular comments use comment_text
+    text.textContent = isNagios ? comment.comment_data : comment.comment_text;
     div.appendChild(text);
 
     return div;
