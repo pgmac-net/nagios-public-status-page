@@ -510,9 +510,6 @@ async function showIncidentDetail(incidentId) {
 
 // Create comment element safely
 function createCommentElement(comment, isNagios) {
-    // Debug logging to see the actual comment structure
-    console.log('Creating comment element. isNagios:', isNagios, 'comment:', comment);
-
     const div = document.createElement('div');
     div.className = isNagios ? 'comment nagios-comment' : 'comment';
 
@@ -528,17 +525,7 @@ function createCommentElement(comment, isNagios) {
     date.className = 'comment-date';
     // Nagios comments use entry_time, regular comments use created_at
     const commentDate = isNagios ? comment.entry_time : comment.created_at;
-    if (commentDate) {
-        try {
-            date.textContent = formatDateTime(new Date(commentDate));
-        } catch (e) {
-            console.error('Error formatting date:', e, 'Date value:', commentDate);
-            date.textContent = commentDate;
-        }
-    } else {
-        console.warn('Missing date for comment:', comment);
-        date.textContent = 'Unknown date';
-    }
+    date.textContent = formatDateTime(new Date(commentDate));
     header.appendChild(date);
 
     div.appendChild(header);
@@ -546,11 +533,7 @@ function createCommentElement(comment, isNagios) {
     const text = document.createElement('div');
     text.className = 'comment-text';
     // Nagios comments use comment_data, regular comments use comment_text
-    const commentText = isNagios ? comment.comment_data : comment.comment_text;
-    text.textContent = commentText || '(No comment text)';
-    if (!commentText) {
-        console.warn('Missing comment text for comment:', comment);
-    }
+    text.textContent = isNagios ? comment.comment_data : comment.comment_text;
     div.appendChild(text);
 
     return div;
@@ -611,7 +594,8 @@ function formatDateTime(date) {
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        timeZoneName: 'short'
     });
 }
 
