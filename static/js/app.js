@@ -475,25 +475,61 @@ async function showIncidentDetail(incidentId) {
 
         detailEl.appendChild(section2);
 
-        // Post-Incident Review Link
+        // Post-Incident Review Section
+        const pirSection = document.createElement('div');
+        pirSection.className = 'incident-detail-section';
+
+        const pirH3 = document.createElement('h3');
+        pirH3.textContent = 'Post-Incident Review';
+        pirSection.appendChild(pirH3);
+
         if (incident.post_incident_review_url) {
-            const pirSection = document.createElement('div');
-            pirSection.className = 'incident-detail-section';
-
-            const pirH3 = document.createElement('h3');
-            pirH3.textContent = 'Post-Incident Review';
-            pirSection.appendChild(pirH3);
-
             const pirLink = document.createElement('a');
             pirLink.href = incident.post_incident_review_url;
             pirLink.target = '_blank';
             pirLink.rel = 'noopener noreferrer';
             pirLink.className = 'pir-link';
-            pirLink.textContent = '\uD83D\uDCC4 View Post-Incident Review Document';
+            pirLink.textContent = '📄 View Post-Incident Review Document';
             pirSection.appendChild(pirLink);
-
-            detailEl.appendChild(pirSection);
+        } else {
+            const noPirText = document.createElement('p');
+            noPirText.style.color = '#a0aec0';
+            noPirText.style.fontSize = '0.9rem';
+            noPirText.textContent = 'No post-incident review document added yet.';
+            pirSection.appendChild(noPirText);
         }
+
+        // PIR URL Form
+        const pirForm = document.createElement('form');
+        pirForm.className = 'pir-form';
+        pirForm.onsubmit = (e) => submitPirUrl(e, incidentId);
+
+        const pirFormGroup = document.createElement('div');
+        pirFormGroup.className = 'form-group';
+
+        const pirLabel = document.createElement('label');
+        pirLabel.htmlFor = 'pir-url-input';
+        pirLabel.textContent = incident.post_incident_review_url ? 'Update PIR URL:' : 'Add PIR URL:';
+        pirFormGroup.appendChild(pirLabel);
+
+        const pirInput = document.createElement('input');
+        pirInput.type = 'url';
+        pirInput.id = 'pir-url-input';
+        pirInput.placeholder = 'https://docs.google.com/document/...';
+        pirInput.required = true;
+        pirInput.value = incident.post_incident_review_url || '';
+        pirFormGroup.appendChild(pirInput);
+
+        pirForm.appendChild(pirFormGroup);
+
+        const pirSubmitBtn = document.createElement('button');
+        pirSubmitBtn.type = 'submit';
+        pirSubmitBtn.className = 'btn-primary';
+        pirSubmitBtn.textContent = incident.post_incident_review_url ? 'Update PIR URL' : 'Add PIR URL';
+        pirForm.appendChild(pirSubmitBtn);
+
+        pirSection.appendChild(pirForm);
+        detailEl.appendChild(pirSection);
 
         // Plugin output
         if (incident.plugin_output) {
@@ -626,6 +662,45 @@ async function submitComment(event) {
     } catch (error) {
         console.error('Error submitting comment:', error);
         alert('Error submitting comment. Please try again.');
+    }
+}
+
+// Submit PIR URL
+async function submitPirUrl(event, incidentId) {
+    event.preventDefault();
+
+    const pirUrlInput = document.getElementById('pir-url-input');
+    const pirUrl = pirUrlInput.value.trim();
+
+    if (!pirUrl) {
+        alert('Please enter a valid URL');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/incidents/${incidentId}/pir`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                post_incident_review_url: pirUrl
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to update PIR URL');
+        }
+
+        // Reload incident detail
+        await showIncidentDetail(incidentId);
+
+        // Show success message
+        alert('Post-incident review URL updated successfully!');
+
+    } catch (error) {
+        console.error('Error updating PIR URL:', error);
+        alert('Error updating PIR URL. Please try again.');
     }
 }
 
