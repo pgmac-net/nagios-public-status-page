@@ -14,7 +14,7 @@ permissions:
   id-token: write
 
 jobs:
-  build:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,8 +23,13 @@ jobs:
         with:
           python-version: 3.13
       - run: uv sync
-      - name: Lint with Ruff
-        run: uv run ./lint
+      - name: Run Ruff
+        uses: astral-sh/ruff-action@v1 # Use the official action
+        with:
+          # Optional: specify arguments (default is 'check')
+          args: "check --output-format=github"
+          # Optional: specify source directory (default is '.')
+          src: "src/"
 
   build_docker_image:
     name: Build & Push Docker image
