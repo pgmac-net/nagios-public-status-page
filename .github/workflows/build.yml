@@ -1,11 +1,11 @@
-name: Build nagios-public-status-page
+name: Build and push nagios-public-status-page
 
 on:
   push:
-    branches: ["master"]
+    branches: ["main"]
     tags: ["*"]
   pull_request:
-    branches: ["master"]
+    branches: ["main"]
 
 permissions:
   contents: read
