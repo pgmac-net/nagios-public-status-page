@@ -26,7 +26,7 @@ jobs:
       - run: uv sync
       - name: Run Ruff
         id: ruff
-        uses: astral-sh/ruff-action@v1 # Use the official action
+        uses: astral-sh/ruff-action@v3 # Use the official action
         continue-on-error: true
         with:
           # Optional: specify arguments (default is 'check')
