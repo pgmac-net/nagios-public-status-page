@@ -121,7 +121,7 @@ Coverage data is available:
 
 Target coverage levels:
 
-- **Overall**: Aim for 80%+ coverage (currently at 61%)
+- **Overall**: Aim for 80%+ coverage (see current value in Codecov dashboard or README badge)
 - **Critical paths**: 100% coverage for security-sensitive code
 - **New code**: PRs should not decrease overall coverage
 
