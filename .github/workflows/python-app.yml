@@ -25,7 +25,7 @@ jobs:
       - run: uv sync
 
       - name: Run Ruff
-        uses: astral-sh/ruff-action@v1 # Use the official action
+        uses: astral-sh/ruff-action@v3 # Use the official action
         with:
           # Optional: specify arguments (default is 'check')
           args: "check --output-format=github"
