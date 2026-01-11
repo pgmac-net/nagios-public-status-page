@@ -3,8 +3,8 @@
 ![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/pgmac-net/nagios-public-status-page/badge)
 ![PyPI version](https://img.shields.io/pypi/v/nagios-public-status-page.svg)
 ![PyPI Python versions](https://img.shields.io/pypi/pyversions/nagios-public-status-page.svg)
-![PyPI downloads](https://img.shields.io/pypi/dm/nagios-public-status-page.svg)
-![Docker Pulls](https://img.shields.io/docker/pulls/pgmac-net/nagios-public-status-page.svg)
+![PyPI downloads](https://img.shields.io/pypi/dm/nagios-public-status-page)
+![Docker Pulls](https://img.shields.io/docker/pulls/pgmac/nagios-public-status-page.svg)
 ![licence](https://img.shields.io/github/license/pgmac-net/nagios-public-status-page.svg)
 ![uv-managed](https://img.shields.io/badge/uv-managed-blueviolet)
 
