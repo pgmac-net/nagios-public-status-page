@@ -1,10 +1,19 @@
-![build workflow](https://github.com/pgmac-net/nagios-public-status-page/actions/workflows/python-app.yml/badge.svg)
-![licence](https://img.shields.io/github/license/pgmac-net/nagios-public-status-page.svg)
+![Python Tests](https://github.com/pgmac/nagios-public-status-page/actions/workflows/python-app.yml/badge.svg)
+![Docker Build](https://github.com/pgmac/nagios-public-status-page/actions/workflows/build.yml/badge.svg)
+![PyPI version](https://img.shields.io/pypi/v/nagios-public-status-page.svg)
+![PyPI Python versions](https://img.shields.io/pypi/pyversions/nagios-public-status-page.svg)
+![PyPI downloads](https://img.shields.io/pypi/dm/nagios-public-status-page.svg)
+![Docker Pulls](https://img.shields.io/docker/pulls/pgmac/nagios-public-status-page.svg)
+![licence](https://img.shields.io/github/license/pgmac/nagios-public-status-page.svg)
 ![uv-managed](https://img.shields.io/badge/uv-managed-blueviolet)
 
 # Public Status Page for Nagios
 
 A standalone public status page application that displays selected hosts and services from your Nagios monitoring system.
+
+**📦 PyPI:** [https://pypi.org/project/nagios-public-status-page/](https://pypi.org/project/nagios-public-status-page/)
+**🐳 Docker Hub:** [https://hub.docker.com/r/pgmac/nagios-public-status-page](https://hub.docker.com/r/pgmac/nagios-public-status-page)
+**📦 GitHub Container Registry:** [https://github.com/pgmac/nagios-public-status-page/pkgs/container/nagios-public-status-page](https://github.com/pgmac/nagios-public-status-page/pkgs/container/nagios-public-status-page)
 
 ## Features
 
@@ -39,25 +48,88 @@ The application consists of several components:
 
 ## Installation
 
-### Using UV (Recommended)
+### From PyPI (Recommended)
+
+The easiest way to install is directly from PyPI:
 
 ```bash
-# Clone or download the project
-cd public-status-page
+# Install the package
+pip install nagios-public-status-page
+
+# Or using pipx for isolated installation
+pipx install nagios-public-status-page
+
+# Run the status page CLI
+status-page --help
+```
+
+The PyPI package includes:
+- Python package with all dependencies
+- CLI command: `status-page`
+- All static web assets
+- Example configuration files
+
+### From Source with UV
+
+```bash
+# Clone the repository
+git clone https://github.com/pgmac/nagios-public-status-page.git
+cd nagios-public-status-page
 
 # UV will automatically create a virtual environment and install dependencies
 uv sync
 ```
 
-### Using pip
+### From Source with pip
 
 ```bash
+# Clone the repository
+git clone https://github.com/pgmac/nagios-public-status-page.git
+cd nagios-public-status-page
+
 # Create virtual environment
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-# Install dependencies
+# Install in development mode
 pip install -e .
+```
+
+## Quick Start
+
+After installing from PyPI:
+
+```bash
+# 1. Install the package
+pip install nagios-public-status-page
+
+# 2. Create a basic config file
+cat > config.yaml << EOF
+nagios:
+  status_dat_path: "/usr/local/nagios/var/status.dat"
+  hostgroups:
+    - "public-status"
+  servicegroups:
+    - "public-status-services"
+
+polling:
+  interval_seconds: 300
+
+database:
+  path: "./data/status.db"
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+EOF
+
+# 3. Run the status page
+status-page
+# Or using Python module directly
+python -m nagios_public_status_page.main
+
+# 4. Access the dashboard
+# Open http://localhost:8000 in your browser
 ```
 
 ## Configuration
