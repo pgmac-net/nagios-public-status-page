@@ -1,5 +1,7 @@
 [![App test, build and publish to PyPI](https://github.com/pgmac-net/nagios-public-status-page/actions/workflows/python-app.yml/badge.svg)](https://github.com/pgmac-net/nagios-public-status-page/actions/workflows/python-app.yml)\
 [![Build and push nagios-public-status-page](https://github.com/pgmac-net/nagios-public-status-page/actions/workflows/build.yml/badge.svg)](https://github.com/pgmac-net/nagios-public-status-page/actions/workflows/build.yml)\
+[![CodeQL](https://github.com/pgmac-net/nagios-public-status-page/actions/workflows/codeql.yml/badge.svg)](https://github.com/pgmac-net/nagios-public-status-page/actions/workflows/codeql.yml)\
+[![codecov](https://codecov.io/gh/pgmac-net/nagios-public-status-page/branch/main/graph/badge.svg)](https://codecov.io/gh/pgmac-net/nagios-public-status-page)\
 ![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/pgmac-net/nagios-public-status-page/badge)\
 ![PyPI version](https://img.shields.io/pypi/v/nagios-public-status-page.svg)\
 ![PyPI Python versions](https://img.shields.io/pypi/pyversions/nagios-public-status-page.svg)\
@@ -508,13 +510,14 @@ public-status-page/
 2. Run linters: `uv run ruff check src/ tests/`
 3. Run pylint: `uv run pylint src/nagios_public_status_page/`
 
-## Security
+## Security & Code Quality
 
-This project follows OpenSSF security best practices with automated scanning and dependency updates.
+This project follows OpenSSF security best practices with automated scanning, dependency updates, and comprehensive code quality checks.
 
 - **Report vulnerabilities**: See [SECURITY.md](SECURITY.md)
 - **Security setup guide**: See [SECURITY_QUICKSTART.md](docs/SECURITY_QUICKSTART.md)
 - **Repository security**: See [REPOSITORY_SECURITY.md](docs/REPOSITORY_SECURITY.md)
+- **Code scanning & coverage**: See [CODE_SCANNING_SETUP.md](docs/CODE_SCANNING_SETUP.md)
 
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/pgmac-net/nagios-public-status-page/badge)](https://scorecard.dev/viewer/?uri=github.com/pgmac-net/nagios-public-status-page)
 
