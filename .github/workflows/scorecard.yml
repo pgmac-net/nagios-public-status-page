@@ -2,14 +2,14 @@ name: OpenSSF Scorecard
 on:
   # Run weekly on Mondays at 10:00 AM UTC
   schedule:
-    - cron: '0 10 * * 1'
+    - cron: "0 10 * * 1"
   # Allow manual triggers
   workflow_dispatch:
   # Run on pushes to main that affects workflows
   push:
     branches: [main]
     paths:
-      - '.github/workflows/**'
+      - ".github/workflows/**"
 
 # Declare default permissions as read only
 permissions: read-all
@@ -52,6 +52,6 @@ jobs:
 
       # Upload the results to GitHub's code scanning dashboard (no untrusted input used)
       - name: Upload to code-scanning
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: results.sarif
