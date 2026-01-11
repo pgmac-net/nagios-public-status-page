@@ -15,17 +15,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.13"
 
       - run: uv sync
 
       - name: Run Ruff
-        uses: astral-sh/ruff-action@v1 # Use the official action
+        uses: astral-sh/ruff-action@v3 # Use the official action
         with:
           # Optional: specify arguments (default is 'check')
           args: "check --output-format=github"
