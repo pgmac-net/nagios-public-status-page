@@ -121,9 +121,21 @@ Coverage data is available:
 
 Target coverage levels:
 
-- **Overall**: Aim for 80%+ coverage
+- **Overall**: Aim for 80%+ coverage (currently at 61%)
 - **Critical paths**: 100% coverage for security-sensitive code
 - **New code**: PRs should not decrease overall coverage
+
+### Dependencies
+
+The coverage setup requires `pytest-cov` which is included in the dev dependencies. If you need to install it manually:
+
+```bash
+# Using uv (recommended)
+uv sync
+
+# Or using pip
+pip install pytest-cov
+```
 
 ## Local Development
 
