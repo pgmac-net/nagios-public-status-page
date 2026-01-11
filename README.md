@@ -243,7 +243,7 @@ uv run pytest
 uv run pytest -v
 
 # Run with coverage
-uv run pytest --cov=status_page
+uv run pytest --cov=nagios_public_status_page
 ```
 
 ### Code Quality
@@ -253,7 +253,7 @@ uv run pytest --cov=status_page
 uv run ruff check src/ tests/
 
 # Run pylint
-uv run pylint src/status_page/
+uv run pylint src/nagios_public_status_page/
 
 # Auto-fix issues
 uv run ruff check --fix src/ tests/
@@ -411,7 +411,7 @@ python migrations/001_add_pir_url.py data/status.db
 ```
 public-status-page/
    src/
-      status_page/
+      nagios_public_status_page/
           parser/          # status.dat parser
           collector/       # Background polling
           api/             # FastAPI routes
@@ -429,11 +429,11 @@ public-status-page/
 
 1. Ensure tests pass: `uv run pytest`
 2. Run linters: `uv run ruff check src/ tests/`
-3. Run pylint: `uv run pylint src/status_page/`
+3. Run pylint: `uv run pylint src/nagios_public_status_page/`
 
 ## License
 
-[Your License Here]
+MIT License - see [LICENSE](LICENSE) file for details
 
 ## Author
 

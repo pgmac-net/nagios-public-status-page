@@ -1,6 +1,16 @@
 # Use single-stage build to avoid venv symlink issues
 FROM python:3.11-slim
 
+# OCI metadata labels
+LABEL org.opencontainers.image.title="Nagios Public Status Page"
+LABEL org.opencontainers.image.description="A standalone public status page application that displays selected hosts and services from your Nagios monitoring system"
+LABEL org.opencontainers.image.authors="Paul Macdonnell <pgmac@pgmac.net>"
+LABEL org.opencontainers.image.vendor="pgmac"
+LABEL org.opencontainers.image.licenses="MIT"
+LABEL org.opencontainers.image.url="https://github.com/pgmac/nagios-public-status-page"
+LABEL org.opencontainers.image.source="https://github.com/pgmac/nagios-public-status-page"
+LABEL org.opencontainers.image.documentation="https://github.com/pgmac/nagios-public-status-page#readme"
+
 # Install uv and runtime dependencies
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 RUN apt-get update && \
@@ -46,4 +56,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/api/health || exit 1
 
 # Run the application
-CMD ["uvicorn", "status_page.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "nagios_public_status_page.main:app", "--host", "0.0.0.0", "--port", "8000"]

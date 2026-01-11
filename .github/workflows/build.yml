@@ -25,12 +25,38 @@ jobs:
           python-version: 3.13
       - run: uv sync
       - name: Run Ruff
+        id: ruff
         uses: astral-sh/ruff-action@v1 # Use the official action
+        continue-on-error: true
         with:
           # Optional: specify arguments (default is 'check')
           args: "check --output-format=github"
           # Optional: specify source directory (default is '.')
           src: "src/"
+
+      - name: Comment PR with lint results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = `## 🔍 Lint Results
+
+            ### Summary
+            - ✅ Ruff linting passed
+
+            ---
+            **Linting must pass before the Docker image can be built.**`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Fail if linting failed
+        if: steps.ruff.outcome == 'failure'
+        run: exit 1
 
   build_docker_image:
     name: Build & Push Docker image
@@ -107,46 +133,20 @@ jobs:
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
 
-      - name: Comment PR with build results
+      - name: Comment PR with build status
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
-        env:
-          GHCR_TAGS: ${{ steps.meta_ghcr.outputs.tags }}
-          DOCKER_TAGS: ${{ steps.meta_docker.outputs.tags }}
-          DIGEST: ${{ steps.push.outputs.digest }}
         with:
           script: |
-            const ghcrTags = process.env.GHCR_TAGS;
-            const dockerTags = process.env.DOCKER_TAGS;
-            const digest = process.env.DIGEST;
+            const body = `## 🐳 Docker Build Status
 
-            const body = `## 🐳 Docker Build Results
+            ### Summary
+            - ✅ Dockerfile syntax validated
+            - ℹ️  Docker images are **not pushed** on pull requests
 
-            ✅ Docker images successfully built and pushed!
-
-            ### 📦 GHCR (GitHub Container Registry)
-            \`\`\`
-            ${ghcrTags}
-            \`\`\`
-
-            ### 🐋 Docker Hub
-            \`\`\`
-            ${dockerTags}
-            \`\`\`
-
-            ### 🔐 Image Digest
-            \`\`\`
-            ${digest}
-            \`\`\`
-
-            ### 📥 Pull Commands
-            \`\`\`bash
-            # From GHCR
-            docker pull ${ghcrTags.split('\n')[0]}
-
-            # From Docker Hub
-            docker pull ${dockerTags.split('\n')[0]}
-            \`\`\``;
+            ---
+            **Note:** Docker images are only built and pushed when you create a semver tag (e.g., \`v1.0.0\`).
+            The build process will validate the Dockerfile but won't publish to registries until you tag a release.`;
 
             github.rest.issues.createComment({
               issue_number: context.issue.number,
