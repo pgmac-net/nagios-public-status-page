@@ -1,5 +1,6 @@
-![Python Tests](https://github.com/pgmac/nagios-public-status-page/actions/workflows/python-app.yml/badge.svg)
-![Docker Build](https://github.com/pgmac/nagios-public-status-page/actions/workflows/build.yml/badge.svg)
+[![App test, build and publish to PyPI](https://github.com/pgmac-net/nagios-public-status-page/actions/workflows/python-app.yml/badge.svg)](https://github.com/pgmac-net/nagios-public-status-page/actions/workflows/python-app.yml)
+[![Build and push nagios-public-status-page](https://github.com/pgmac-net/nagios-public-status-page/actions/workflows/build.yml/badge.svg)](https://github.com/pgmac-net/nagios-public-status-page/actions/workflows/build.yml)
+![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/pgmac/nagios-public-status-page/badge)
 ![PyPI version](https://img.shields.io/pypi/v/nagios-public-status-page.svg)
 ![PyPI Python versions](https://img.shields.io/pypi/pyversions/nagios-public-status-page.svg)
 ![PyPI downloads](https://img.shields.io/pypi/dm/nagios-public-status-page.svg)
@@ -12,7 +13,9 @@
 A standalone public status page application that displays selected hosts and services from your Nagios monitoring system.
 
 **📦 PyPI:** [https://pypi.org/project/nagios-public-status-page/](https://pypi.org/project/nagios-public-status-page/)
+
 **🐳 Docker Hub:** [https://hub.docker.com/r/pgmac/nagios-public-status-page](https://hub.docker.com/r/pgmac/nagios-public-status-page)
+
 **📦 GitHub Container Registry:** [https://github.com/pgmac/nagios-public-status-page/pkgs/container/nagios-public-status-page](https://github.com/pgmac/nagios-public-status-page/pkgs/container/nagios-public-status-page)
 
 ## Features
@@ -64,6 +67,7 @@ status-page --help
 ```
 
 The PyPI package includes:
+
 - Python package with all dependencies
 - CLI command: `status-page`
 - All static web assets
@@ -180,12 +184,13 @@ nagios:
 ```
 
 You can also use environment variables:
+
 ```bash
 NAGIOS_HOSTS="webserver01,dbserver01"
 NAGIOS_SERVICES="macro:plexweb,webserver01:HTTP"
 ```
 
-**Tip**: You can combine both methods - the status page will include hosts/services that match *either* the groups *or* the explicit lists.
+**Tip**: You can combine both methods - the status page will include hosts/services that match _either_ the groups _or_ the explicit lists.
 
 ### 2. Configure the Application
 
@@ -207,8 +212,8 @@ nagios:
     - "public-status-services"
 
 polling:
-  interval_seconds: 300  # Poll every 5 minutes
-  staleness_threshold_seconds: 600  # Warn if data > 10 minutes old
+  interval_seconds: 300 # Poll every 5 minutes
+  staleness_threshold_seconds: 600 # Warn if data > 10 minutes old
 
 database:
   path: "./data/status.db"
@@ -249,6 +254,7 @@ open http://localhost:8000
 ```
 
 **Available Image Tags:**
+
 - `latest` - Latest stable release (semver tagged)
 - `v1.0.0` - Specific version (replace with desired version)
 - `v1.0` - Latest patch version in the 1.0 series
@@ -275,6 +281,7 @@ open http://localhost:8000
 To publish a new version to Docker registries, PyPI, and GitHub Releases:
 
 1. Create and push a semver tag (the version in `pyproject.toml` will be automatically updated):
+
    ```bash
    git tag v1.0.0
    git push origin v1.0.0
