@@ -1,13 +1,13 @@
-[![App test, build and publish to PyPI](https://github.com/pgmac-net/nagios-public-status-page/actions/workflows/python-app.yml/badge.svg)](https://github.com/pgmac-net/nagios-public-status-page/actions/workflows/python-app.yml)\
-[![Build and push nagios-public-status-page](https://github.com/pgmac-net/nagios-public-status-page/actions/workflows/build.yml/badge.svg)](https://github.com/pgmac-net/nagios-public-status-page/actions/workflows/build.yml)\
+[![Build and push nagios-public-status-page](https://github.com/pgmac-net/nagios-public-status-page/actions/workflows/build.yml/badge.svg)](https://github.com/pgmac-net/nagios-public-status-page/actions/workflows/build.yml)
+[![App test, build and publish to PyPI](https://github.com/pgmac-net/nagios-public-status-page/actions/workflows/python-app.yml/badge.svg)](https://github.com/pgmac-net/nagios-public-status-page/actions/workflows/python-app.yml)
 [![CodeQL](https://github.com/pgmac-net/nagios-public-status-page/actions/workflows/codeql.yml/badge.svg)](https://github.com/pgmac-net/nagios-public-status-page/actions/workflows/codeql.yml)\
-[![codecov](https://codecov.io/gh/pgmac-net/nagios-public-status-page/branch/main/graph/badge.svg)](https://codecov.io/gh/pgmac-net/nagios-public-status-page)\
+[![codecov](https://codecov.io/gh/pgmac-net/nagios-public-status-page/branch/main/graph/badge.svg)](https://codecov.io/gh/pgmac-net/nagios-public-status-page)
 ![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/pgmac-net/nagios-public-status-page/badge)\
-![PyPI version](https://img.shields.io/pypi/v/nagios-public-status-page.svg)\
 ![PyPI Python versions](https://img.shields.io/pypi/pyversions/nagios-public-status-page.svg)\
+![PyPI version](https://img.shields.io/pypi/v/nagios-public-status-page.svg)
 ![PyPI downloads](https://img.shields.io/pypi/dm/nagios-public-status-page)\
 ![Docker Pulls](https://img.shields.io/docker/pulls/pgmac/nagios-public-status-page.svg)\
-![license](https://img.shields.io/github/license/pgmac-net/nagios-public-status-page.svg)\
+![license](https://img.shields.io/github/license/pgmac-net/nagios-public-status-page.svg)
 ![uv-managed](https://img.shields.io/badge/uv-managed-blueviolet)
 
 # Public Status Page for Nagios
