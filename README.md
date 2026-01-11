@@ -508,6 +508,16 @@ public-status-page/
 2. Run linters: `uv run ruff check src/ tests/`
 3. Run pylint: `uv run pylint src/nagios_public_status_page/`
 
+## Security
+
+This project follows OpenSSF security best practices with automated scanning and dependency updates.
+
+- **Report vulnerabilities**: See [SECURITY.md](SECURITY.md)
+- **Security setup guide**: See [SECURITY_QUICKSTART.md](docs/SECURITY_QUICKSTART.md)
+- **Repository security**: See [REPOSITORY_SECURITY.md](docs/REPOSITORY_SECURITY.md)
+
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/pgmac-net/nagios-public-status-page/badge)](https://scorecard.dev/viewer/?uri=github.com/pgmac-net/nagios-public-status-page)
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details
