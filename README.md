@@ -152,6 +152,39 @@ Environment variables override config file values. See `.env.example` for availa
 
 Multiple deployment options are available:
 
+### Quick Start with Docker
+
+Pre-built images are available from Docker Hub and GitHub Container Registry:
+
+```bash
+# Pull from Docker Hub (recommended)
+docker pull pgmac/nagios-public-status-page:latest
+
+# Or pull from GitHub Container Registry
+docker pull ghcr.io/pgmac/nagios-public-status-page:latest
+
+# Run the container
+docker run -d \
+  -p 8000:8000 \
+  -v /usr/local/nagios/var/status.dat:/app/status.dat:ro \
+  -v ./config.yaml:/app/config.yaml:ro \
+  -v ./data:/app/data \
+  --name status-page \
+  pgmac/nagios-public-status-page:latest
+
+# Access the dashboard
+open http://localhost:8000
+```
+
+**Available Image Tags:**
+- `latest` - Latest stable release (semver tagged)
+- `v1.0.0` - Specific version (replace with desired version)
+- `v1.0` - Latest patch version in the 1.0 series
+- `v1` - Latest minor version in the 1.x series
+- `sha-<hash>` - Specific commit hash (for testing)
+
+**Note:** Only semver-tagged releases (e.g., `v1.0.0`) are pushed to the registries to keep them clean. SHA-tagged images are built but not pushed.
+
 ### Quick Start with Docker Compose
 
 ```bash
@@ -164,6 +197,25 @@ docker-compose logs -f
 # Access the dashboard
 open http://localhost:8000
 ```
+
+### Creating a Release
+
+To publish a new version to Docker registries, PyPI, and GitHub Releases:
+
+1. Create and push a semver tag (the version in `pyproject.toml` will be automatically updated):
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+
+2. GitHub Actions will automatically:
+   - Run tests, linting, and type checks
+   - Update version in `pyproject.toml` to match the tag
+   - Build and publish Python package to PyPI
+   - Create a GitHub Release with distribution files
+   - Build and push Docker images to Docker Hub and GHCR with multiple tags
+
+**Note:** The version in `pyproject.toml` is automatically updated from the git tag during the release process, so you don't need to manually update it before tagging.
 
 ### Other Deployment Options
 

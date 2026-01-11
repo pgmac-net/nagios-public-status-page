@@ -61,10 +61,14 @@ jobs:
         with:
           images: ghcr.io/${{ env.IMAGE_NAME }}
           tags: |
-            # minimal (short sha)
+            # semver tags (e.g., v1.0.0, v1.0, v1)
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            # sha hash
             type=sha
-            # set latest tag for master branch
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            # latest tag for semver releases only
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta_docker
@@ -73,16 +77,21 @@ jobs:
           images: |
             pgmac/nagios-public-status-page
           tags: |
-            # minimal (short sha)
+            # semver tags (e.g., v1.0.0, v1.0, v1)
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            # sha hash
             type=sha
-            # set latest tag for master branch
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            # latest tag for semver releases only
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         id: push
         with:
-          push: true
+          # Only push to registries on tags
+          push: ${{ startsWith(github.ref, 'refs/tags/v') }}
           tags: |
             ${{ steps.meta_ghcr.outputs.tags }}
             ${{ steps.meta_docker.outputs.tags }}
@@ -91,6 +100,7 @@ jobs:
             ${{ steps.meta_docker.outputs.labels }}
 
       - name: Generate ghcr artifact attestation
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: actions/attest-build-provenance@v2
         with:
           subject-name: ghcr.io/${{ env.IMAGE_NAME}}

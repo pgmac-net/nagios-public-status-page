@@ -2,21 +2,36 @@
 
 This guide explains how to publish the Nagios Public Status Page to PyPI.
 
-## Prerequisites
+## Automated Release Process (Recommended)
+
+The project uses GitHub Actions to automatically publish releases. Simply create and push a semver tag:
+
+```bash
+# Create a semver tag
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+GitHub Actions will automatically:
+1. Run all tests, linting, and type checks
+2. Update the version in `pyproject.toml` to match the tag
+3. Build the Python package
+4. Publish to PyPI
+5. Build and push Docker images
+6. Create a GitHub Release with distribution files
+
+**Note:** You don't need to manually update the version in `pyproject.toml` - it's automatically extracted from the git tag.
+
+## Prerequisites for Automated Publishing
 
 1. **PyPI Account**: Create an account at https://pypi.org/account/register/
 2. **API Token**: Generate an API token at https://pypi.org/manage/account/token/
-   - Store it securely, you'll need it for authentication
+3. **GitHub Secret**: Add your PyPI token as a GitHub secret named `PYPI_TOKEN`
+4. **Docker Hub Credentials**: Add `DOCKER_USERNAME` and `DOCKER_PASSWORD` as GitHub secrets
 
-## Publishing Steps
+## Manual Publishing Steps
 
-### 1. Update Version
-
-Edit `pyproject.toml` and increment the version number:
-
-```toml
-version = "0.1.0"  # Update this for each release
-```
+If you need to publish manually for testing:
 
 ### 2. Clean Previous Builds
 
@@ -88,60 +103,54 @@ Users can now install with:
 pip install nagios-public-status-page
 ```
 
-## Using GitHub Actions (Automated Publishing)
+## GitHub Actions Workflows
 
-You can automate publishing with GitHub Actions. Create `.github/workflows/publish.yml`:
+The project includes two GitHub Actions workflows:
 
-```yaml
-name: Publish to PyPI
+### 1. `python-app.yml` - Python Testing and PyPI Publishing
 
-on:
-  release:
-    types: [published]
+Triggers on:
+- Pushes to `main` branch (runs tests only)
+- Pull requests to `main` (runs tests and comments on PR)
+- Tags starting with `v` (runs tests, publishes to PyPI, creates GitHub release)
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+On semver tags (e.g., `v1.0.0`), this workflow:
+- Extracts version from the tag
+- Updates `pyproject.toml` with the tag version
+- Builds the Python package
+- Publishes to PyPI
+- Creates a GitHub Release with `.tar.gz` and `.whl` files
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
+### 2. `build.yml` - Docker Build and Push
 
-      - name: Install uv
-        run: pip install uv
+Triggers on:
+- Tags starting with `v` (builds and pushes to registries)
+- Pushes to `main` and pull requests (linting only, no push)
 
-      - name: Build package
-        run: uv build
+On semver tags, this workflow builds and pushes to:
+- Docker Hub: `pgmac/nagios-public-status-page`
+- GitHub Container Registry: `ghcr.io/pgmac/nagios-public-status-page`
 
-      - name: Publish to PyPI
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: |
-          pip install twine
-          twine upload dist/*
-```
-
-Then add your PyPI API token as a GitHub secret named `PYPI_API_TOKEN`.
+With multiple tags: `latest`, `v1.0.0`, `v1.0`, `v1`, `sha-<hash>`
 
 ## Release Checklist
 
 Before each release:
 
-- [ ] Update version in `pyproject.toml`
 - [ ] Update `CHANGELOG.md` (if you have one)
-- [ ] Run tests: `uv run pytest`
-- [ ] Run linters: `uv run ruff check src` and `uv run pylint src`
-- [ ] Run type check: `uv run ty check src`
+- [ ] Run tests locally: `uv run pytest`
+- [ ] Run linters locally: `uv run ruff check src`
+- [ ] Run type check locally: `uvx ty check src`
 - [ ] Update `README.md` if needed
-- [ ] Build and test locally
-- [ ] Test on TestPyPI
-- [ ] Create git tag: `git tag v0.1.0 && git push origin v0.1.0`
-- [ ] Publish to PyPI
-- [ ] Create GitHub release with release notes
+- [ ] Commit all changes to `main`
+- [ ] Create and push semver tag: `git tag v0.1.0 && git push origin v0.1.0`
+- [ ] Monitor GitHub Actions workflows for completion
+- [ ] Verify publication on PyPI: https://pypi.org/project/nagios-public-status-page/
+- [ ] Verify Docker images on Docker Hub and GHCR
+- [ ] Test installation: `pip install nagios-public-status-page==0.1.0`
+- [ ] Test Docker image: `docker pull pgmac/nagios-public-status-page:v0.1.0`
+
+**Note:** The version in `pyproject.toml` is automatically updated during the release workflow - do not update it manually.
 
 ## Versioning
 
