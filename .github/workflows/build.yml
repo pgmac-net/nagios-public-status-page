@@ -36,7 +36,7 @@ jobs:
 
       - name: Comment PR with lint results
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const body = `## 🔍 Lint Results
@@ -135,7 +135,7 @@ jobs:
 
       - name: Comment PR with build status
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const body = `## 🐳 Docker Build Status
