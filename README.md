@@ -7,7 +7,7 @@
 ![PyPI Python versions](https://img.shields.io/pypi/pyversions/nagios-public-status-page.svg)\
 ![PyPI downloads](https://img.shields.io/pypi/dm/nagios-public-status-page)\
 ![Docker Pulls](https://img.shields.io/docker/pulls/pgmac/nagios-public-status-page.svg)\
-![licence](https://img.shields.io/github/license/pgmac-net/nagios-public-status-page.svg)\
+![license](https://img.shields.io/github/license/pgmac-net/nagios-public-status-page.svg)\
 ![uv-managed](https://img.shields.io/badge/uv-managed-blueviolet)
 
 # Public Status Page for Nagios
