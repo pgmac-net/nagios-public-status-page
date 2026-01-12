@@ -96,7 +96,7 @@ def verify_write_access(credentials: HTTPBasicCredentials = Depends(security)) -
     **Status Values:**
     - `healthy`: System operating normally
     - `degraded`: Active incidents present
-    - `stale`: Data hasn't been updated recently
+    - `stale`: Data has not been updated recently
     """,
     responses={
         200: {
