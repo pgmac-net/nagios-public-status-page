@@ -1,4 +1,4 @@
-"apps""Background polling service for Nagios status data."""
+"""Background polling service for Nagios status data."""
 
 import logging
 import threading
