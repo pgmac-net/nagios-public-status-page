@@ -206,6 +206,42 @@ class StatusSummary(BaseModel):
     )
 
 
+class SchedulerStatusResponse(BaseModel):
+    """Schema for scheduler health status.
+
+    Provides detailed information about the poller scheduler state.
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "is_running": True,
+                "scheduler_running": True,
+                "consecutive_failures": 0,
+                "max_consecutive_failures": 3,
+                "recovery_attempts": 0,
+                "last_recovery_time": None,
+                "health_status": "healthy"
+            }
+        }
+    )
+
+    is_running: bool = Field(description="Whether the poller is marked as running")
+    scheduler_running: bool = Field(description="Whether the APScheduler thread is running")
+    consecutive_failures: int = Field(description="Current count of consecutive poll failures")
+    max_consecutive_failures: int = Field(
+        description="Threshold for triggering automatic recovery"
+    )
+    recovery_attempts: int = Field(description="Total number of recovery attempts")
+    last_recovery_time: str | None = Field(
+        default=None,
+        description="ISO timestamp of last recovery attempt"
+    )
+    health_status: str = Field(
+        description="Overall scheduler health: 'healthy', 'degraded', or 'critical'"
+    )
+
+
 class HealthResponse(BaseModel):
     """Schema for health check response.
 
@@ -220,7 +256,16 @@ class HealthResponse(BaseModel):
                 "status_dat_age_seconds": 45.2,
                 "data_is_stale": False,
                 "active_incidents_count": 0,
-                "database_accessible": True
+                "database_accessible": True,
+                "scheduler_status": {
+                    "is_running": True,
+                    "scheduler_running": True,
+                    "consecutive_failures": 0,
+                    "max_consecutive_failures": 3,
+                    "recovery_attempts": 0,
+                    "last_recovery_time": None,
+                    "health_status": "healthy"
+                }
             }
         }
     )
@@ -241,7 +286,7 @@ class HealthResponse(BaseModel):
     )
     active_incidents_count: int = Field(description="Number of active incidents")
     database_accessible: bool = Field(description="Whether database is accessible")
-    scheduler_status: dict | None = Field(
+    scheduler_status: SchedulerStatusResponse | None = Field(
         default=None,
         description="Scheduler health information including failure tracking and recovery status"
     )
