@@ -387,7 +387,11 @@ class StatusPoller:
         """
         return {
             "is_running": self.is_running,
-            "scheduler_running": self.scheduler.running if self.is_running else False,
+            "scheduler_running": (
+                self.scheduler.running
+                if self.is_running and self.scheduler is not None
+                else False
+            ),
             "consecutive_failures": self._consecutive_failures,
             "max_consecutive_failures": self._max_consecutive_failures,
             "recovery_attempts": self._recovery_attempts,
