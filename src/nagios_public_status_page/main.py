@@ -64,11 +64,53 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI app
 app = FastAPI(
-    title="Nagios Public Status Page",
-    description="Public status page for Nagios monitoring",
+    title="Nagios Public Status Page API",
+    description="""
+## Nagios Public Status Page API
+
+A comprehensive REST API for monitoring Nagios infrastructure with incident tracking and RSS feeds.
+
+### Features
+
+* **Real-time Status Monitoring**: Get current status of hosts and services
+* **Incident Management**: Track incidents with comments and post-incident reviews
+* **RSS Feeds**: Subscribe to incident updates via RSS
+* **Health Checks**: Monitor API and data freshness
+* **Authentication**: Basic HTTP authentication for write operations
+
+### Authentication
+
+Write operations (POST, PATCH) require HTTP Basic Authentication when configured.
+Set credentials in your `config.yaml` file.
+
+### Getting Started
+
+1. Check the API health: `GET /api/health`
+2. View overall status: `GET /api/status`
+3. List incidents: `GET /api/incidents`
+4. Subscribe to RSS: `GET /feed/rss.xml`
+    """,
     version="1.0.0",
     docs_url="/api/docs",
     redoc_url="/api/redoc",
+    openapi_tags=[
+        {
+            "name": "api",
+            "description": "Core API endpoints for monitoring and incident management",
+        },
+        {
+            "name": "rss",
+            "description": "RSS feed endpoints for incident notifications",
+        },
+    ],
+    contact={
+        "name": "GitHub Repository",
+        "url": "https://github.com/pgmac/nagios-public-status-page",
+    },
+    license_info={
+        "name": "MIT",
+        "url": "https://github.com/pgmac/nagios-public-status-page/blob/main/LICENSE",
+    },
     lifespan=lifespan
 )
 

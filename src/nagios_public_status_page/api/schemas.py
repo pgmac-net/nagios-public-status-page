@@ -2,51 +2,118 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class IncidentResponse(BaseModel):
-    """Schema for incident response."""
+    """Schema for incident response.
 
-    id: int
-    incident_type: str
-    host_name: str
-    service_description: str | None
-    state: str
-    started_at: datetime
-    ended_at: datetime | None
-    last_check: datetime | None
-    plugin_output: str | None
-    post_incident_review_url: str | None
-    acknowledged: bool
-    is_active: bool
+    Represents a monitoring incident (host or service problem).
+    """
 
-    class Config:
-        """Pydantic config."""
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "example": {
+                "id": 123,
+                "incident_type": "service",
+                "host_name": "web-server-01",
+                "service_description": "HTTPS",
+                "state": "CRITICAL",
+                "started_at": "2025-01-12T09:15:00",
+                "ended_at": None,
+                "last_check": "2025-01-12T10:30:00",
+                "plugin_output": "Connection refused on port 443",
+                "post_incident_review_url": "https://example.com/pir/123",
+                "acknowledged": False,
+                "is_active": True
+            }
+        }
+    )
 
-        from_attributes = True
+    id: int = Field(description="Unique incident identifier")
+    incident_type: str = Field(description="Type of incident: 'host' or 'service'")
+    host_name: str = Field(description="Name of the affected host")
+    service_description: str | None = Field(
+        default=None,
+        description="Service name (null for host incidents)"
+    )
+    state: str = Field(
+        description="Current state: UP/DOWN/UNREACHABLE for hosts, OK/WARNING/CRITICAL/UNKNOWN for services"
+    )
+    started_at: datetime = Field(description="When the incident started")
+    ended_at: datetime | None = Field(
+        default=None,
+        description="When the incident ended (null if still active)"
+    )
+    last_check: datetime | None = Field(
+        default=None,
+        description="Last time this was checked by Nagios"
+    )
+    plugin_output: str | None = Field(
+        default=None,
+        description="Output from the monitoring plugin"
+    )
+    post_incident_review_url: str | None = Field(
+        default=None,
+        description="URL to post-incident review document"
+    )
+    acknowledged: bool = Field(description="Whether the incident has been acknowledged in Nagios")
+    is_active: bool = Field(description="Whether the incident is currently ongoing")
 
 
 class CommentResponse(BaseModel):
-    """Schema for comment response."""
+    """Schema for comment response.
 
-    id: int
-    incident_id: int
-    author: str
-    comment_text: str
-    created_at: datetime
+    Represents a user comment on an incident.
+    """
 
-    class Config:
-        """Pydantic config."""
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "example": {
+                "id": 456,
+                "incident_id": 123,
+                "author": "Jane Smith",
+                "comment_text": "Database failover completed successfully",
+                "created_at": "2025-01-12T10:45:00"
+            }
+        }
+    )
 
-        from_attributes = True
+    id: int = Field(description="Unique comment identifier")
+    incident_id: int = Field(description="ID of the incident this comment belongs to")
+    author: str = Field(description="Name of the comment author")
+    comment_text: str = Field(description="The comment content")
+    created_at: datetime = Field(description="When the comment was created")
 
 
 class CommentCreate(BaseModel):
-    """Schema for creating a comment."""
+    """Schema for creating a comment.
 
-    author: str = Field(..., min_length=1, max_length=255)
-    comment_text: str = Field(..., min_length=1)
+    Use this to add updates or notes to an incident.
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "author": "John Doe",
+                "comment_text": "Restarted the service, monitoring for stability"
+            }
+        }
+    )
+
+    author: str = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        description="Your name or identifier"
+    )
+    comment_text: str = Field(
+        ...,
+        min_length=1,
+        description="The comment text"
+    )
 
 
 class PostIncidentReviewUpdate(BaseModel):
@@ -96,31 +163,84 @@ class ServiceStatusResponse(BaseModel):
 
 
 class StatusSummary(BaseModel):
-    """Schema for overall status summary."""
+    """Schema for overall status summary.
 
-    total_hosts: int
-    hosts_up: int
-    hosts_down: int
-    hosts_unreachable: int
-    total_services: int
-    services_ok: int
-    services_warning: int
-    services_critical: int
-    services_unknown: int
-    active_incidents: int
-    last_poll: datetime | None
-    data_is_stale: bool
+    Provides aggregated counts of all monitored resources.
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "total_hosts": 10,
+                "hosts_up": 9,
+                "hosts_down": 1,
+                "hosts_unreachable": 0,
+                "total_services": 50,
+                "services_ok": 45,
+                "services_warning": 3,
+                "services_critical": 2,
+                "services_unknown": 0,
+                "active_incidents": 2,
+                "last_poll": "2025-01-12T10:30:00",
+                "data_is_stale": False
+            }
+        }
+    )
+
+    total_hosts: int = Field(description="Total number of monitored hosts")
+    hosts_up: int = Field(description="Number of hosts in UP state")
+    hosts_down: int = Field(description="Number of hosts in DOWN state")
+    hosts_unreachable: int = Field(description="Number of hosts in UNREACHABLE state")
+    total_services: int = Field(description="Total number of monitored services")
+    services_ok: int = Field(description="Number of services in OK state")
+    services_warning: int = Field(description="Number of services in WARNING state")
+    services_critical: int = Field(description="Number of services in CRITICAL state")
+    services_unknown: int = Field(description="Number of services in UNKNOWN state")
+    active_incidents: int = Field(description="Number of currently active incidents")
+    last_poll: datetime | None = Field(
+        default=None,
+        description="Timestamp of last successful poll"
+    )
+    data_is_stale: bool = Field(
+        description="Whether the data hasn't been updated recently"
+    )
 
 
 class HealthResponse(BaseModel):
-    """Schema for health check response."""
+    """Schema for health check response.
 
-    status: str
-    last_poll_time: datetime | None
-    status_dat_age_seconds: float | None
-    data_is_stale: bool
-    active_incidents_count: int
-    database_accessible: bool
+    Provides system health and operational status.
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "status": "healthy",
+                "last_poll_time": "2025-01-12T10:30:00",
+                "status_dat_age_seconds": 45.2,
+                "data_is_stale": False,
+                "active_incidents_count": 0,
+                "database_accessible": True
+            }
+        }
+    )
+
+    status: str = Field(
+        description="Overall health status: 'healthy', 'degraded', or 'stale'"
+    )
+    last_poll_time: datetime | None = Field(
+        default=None,
+        description="When the last poll was completed"
+    )
+    status_dat_age_seconds: float | None = Field(
+        default=None,
+        description="Age of the Nagios status.dat file in seconds"
+    )
+    data_is_stale: bool = Field(
+        description="Whether data hasn't been updated within the expected interval"
+    )
+    active_incidents_count: int = Field(description="Number of active incidents")
+    database_accessible: bool = Field(description="Whether database is accessible")
 
 
 class PollMetadataResponse(BaseModel):
