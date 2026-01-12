@@ -202,7 +202,7 @@ class StatusSummary(BaseModel):
         description="Timestamp of last successful poll"
     )
     data_is_stale: bool = Field(
-        description="Whether the data hasn't been updated recently"
+        description="Whether the data has not been updated recently"
     )
 
 
