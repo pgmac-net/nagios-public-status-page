@@ -241,6 +241,10 @@ class HealthResponse(BaseModel):
     )
     active_incidents_count: int = Field(description="Number of active incidents")
     database_accessible: bool = Field(description="Whether database is accessible")
+    scheduler_status: dict | None = Field(
+        default=None,
+        description="Scheduler health information including failure tracking and recovery status"
+    )
 
 
 class PollMetadataResponse(BaseModel):

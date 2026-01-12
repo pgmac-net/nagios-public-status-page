@@ -151,6 +151,9 @@ def health_check(db: Session = Depends(get_db)) -> HealthResponse:
         if active_count > 0:
             status = "degraded"
 
+        # Get scheduler status
+        scheduler_status = poller.get_scheduler_status()
+
         poll_time = cast(datetime, last_poll.last_poll_time) if last_poll else None
         return HealthResponse(
             status=status,
@@ -159,6 +162,7 @@ def health_check(db: Session = Depends(get_db)) -> HealthResponse:
             data_is_stale=is_stale,
             active_incidents_count=active_count,
             database_accessible=True,
+            scheduler_status=scheduler_status,
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Health check failed: {exc}") from exc
