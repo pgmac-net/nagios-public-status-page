@@ -178,7 +178,8 @@ class StatusPoller:
 
             # Stop the current scheduler
             if self.is_running and self.scheduler.running:
-                self.scheduler.shutdown(wait=False)
+                # Use wait=True to allow in-progress jobs to complete before shutdown
+                self.scheduler.shutdown(wait=True)
                 logger.info("Stopped existing scheduler")
 
             # Mark as not running
