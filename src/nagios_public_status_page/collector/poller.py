@@ -187,8 +187,8 @@ class StatusPoller:
 
         except Exception as exc:
             logger.exception("Failed to recover scheduler: %s", exc)
-            # Don't reset failure counter - let it keep trying on next poll attempt
-
+            # Reset failure counter after failed recovery to avoid continuous recovery attempts
+            self._consecutive_failures = 0
     def poll(self) -> PollResults:
         """Poll status.dat and update incident tracking.
 
@@ -424,18 +424,18 @@ class StatusPoller:
         Returns:
             Dictionary with scheduler health information
         """
-        with self._state_lock:
-            return {
-                "is_running": self.is_running,
-                "scheduler_running": self.scheduler.running if self.is_running else False,
-                "consecutive_failures": self._consecutive_failures,
-                "max_consecutive_failures": self._max_consecutive_failures,
-                "recovery_attempts": self._recovery_attempts,
-                "last_recovery_time": (
-                    self._last_recovery_time.isoformat() if self._last_recovery_time else None
-                ),
-                "health_status": self._get_health_status(),
-            }
+        return {
+            "is_running": self.is_running,
+            "scheduler_running": (
+                self.scheduler.running
+                if self.is_running and self.scheduler is not None
+                else False
+            ),
+            "consecutive_failures": self._consecutive_failures,
+            "max_consecutive_failures": self._max_consecutive_failures,
+            "recovery_attempts": self._recovery_attempts,
+            "health_status": self._get_health_status(),
+        }
 
     def _get_health_status(self) -> str:
         """Determine the overall health status of the poller.
