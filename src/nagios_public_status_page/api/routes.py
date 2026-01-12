@@ -19,6 +19,7 @@ from nagios_public_status_page.api.schemas import (
     IncidentWithComments,
     NagiosCommentResponse,
     PostIncidentReviewUpdate,
+    SchedulerStatusResponse,
     ServiceStatusResponse,
     StatusSummary,
 )
@@ -92,11 +93,17 @@ def verify_write_access(credentials: HTTPBasicCredentials = Depends(security)) -
     - Last poll time and data freshness
     - Active incident count
     - Database connectivity
+    - Scheduler health and self-healing status
 
     **Status Values:**
     - `healthy`: System operating normally
     - `degraded`: Active incidents present
     - `stale`: Data has not been updated recently
+
+    **Scheduler Health Status:**
+    - `healthy`: Scheduler running normally with no failures
+    - `degraded`: Scheduler running but experiencing some failures
+    - `critical`: Scheduler not running or exceeded failure threshold
     """,
     responses={
         200: {
@@ -109,7 +116,16 @@ def verify_write_access(credentials: HTTPBasicCredentials = Depends(security)) -
                         "status_dat_age_seconds": 45.2,
                         "data_is_stale": False,
                         "active_incidents_count": 0,
-                        "database_accessible": True
+                        "database_accessible": True,
+                        "scheduler_status": {
+                            "is_running": True,
+                            "scheduler_running": True,
+                            "consecutive_failures": 0,
+                            "max_consecutive_failures": 3,
+                            "recovery_attempts": 0,
+                            "last_recovery_time": None,
+                            "health_status": "healthy"
+                        }
                     }
                 }
             }
@@ -151,6 +167,10 @@ def health_check(db: Session = Depends(get_db)) -> HealthResponse:
         if active_count > 0:
             status = "degraded"
 
+        # Get scheduler status
+        scheduler_status_dict = poller.get_scheduler_status()
+        scheduler_status = SchedulerStatusResponse(**scheduler_status_dict)
+
         poll_time = cast(datetime, last_poll.last_poll_time) if last_poll else None
         return HealthResponse(
             status=status,
@@ -159,6 +179,7 @@ def health_check(db: Session = Depends(get_db)) -> HealthResponse:
             data_is_stale=is_stale,
             active_incidents_count=active_count,
             database_accessible=True,
+            scheduler_status=scheduler_status,
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Health check failed: {exc}") from exc
