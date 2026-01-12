@@ -460,7 +460,10 @@ class StatusPoller:
         if not self.is_running:
             return "critical"
 
-        if self._consecutive_failures >= self._max_consecutive_failures:
+        if (
+            self._consecutive_failures >= self._max_consecutive_failures
+            or self._recovery_attempts > 0
+        ):
             return "critical"
 
         if self._consecutive_failures > 0:
