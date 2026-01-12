@@ -528,8 +528,8 @@ def get_incident(incident_id: int, db: Session = Depends(get_db)) -> IncidentWit
                     "example": {
                         "id": 456,
                         "incident_id": 123,
-                        "author": "John Doe",
-                        "comment_text": "Database connection restored",
+                        "author": "Jane Smith",
+                        "comment_text": "Database failover completed successfully",
                         "created_at": "2025-01-12T10:45:00"
                     }
                 }
