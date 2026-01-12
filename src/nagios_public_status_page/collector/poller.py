@@ -68,7 +68,21 @@ class StatusPoller:
         """Wrapper around poll() that implements self-healing.
 
         This method is called by the scheduler instead of poll() directly.
-        It tracks failures and triggers automatic recovery when needed.
+
+        A *failure* in this context is either:
+
+        * A completed poll where the returned PollResults dictionary contains one
+          or more entries in its ``errors`` list (for example, stale data, file
+          access problems, or parsing issues). These errors are logged and count
+          toward the consecutive failure threshold.
+        * An unhandled exception raised by :meth:`poll`. Exceptions are treated
+          as critical failures, logged with a full traceback, and also increment
+          the consecutive failure counter.
+
+        Both kinds of failures increment ``_consecutive_failures``. When the
+        number of consecutive failures reaches ``_max_consecutive_failures``,
+        this method invokes ``_attempt_recovery`` to perform automatic
+        self-healing actions.
         Thread-safe using lock to protect shared state.
         """
         try:
