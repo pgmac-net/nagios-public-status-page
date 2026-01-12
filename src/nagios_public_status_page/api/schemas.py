@@ -237,7 +237,7 @@ class HealthResponse(BaseModel):
         description="Age of the Nagios status.dat file in seconds"
     )
     data_is_stale: bool = Field(
-        description="Whether data hasn't been updated within the expected interval"
+        description="Whether data has not been updated within the expected interval"
     )
     active_incidents_count: int = Field(description="Number of active incidents")
     database_accessible: bool = Field(description="Whether database is accessible")
