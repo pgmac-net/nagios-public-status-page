@@ -150,8 +150,8 @@ class StatusPoller:
 
         except Exception as exc:
             logger.exception("Failed to recover scheduler: %s", exc)
-            # Don't reset failure counter - let it keep trying on next poll attempt
-
+            # Reset failure counter after failed recovery to avoid continuous recovery attempts
+            self._consecutive_failures = 0
     def poll(self) -> PollResults:
         """Poll status.dat and update incident tracking.
 
