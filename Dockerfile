@@ -1,5 +1,5 @@
 # Use single-stage build to avoid venv symlink issues
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 # OCI metadata labels
 LABEL org.opencontainers.image.title="Nagios Public Status Page"
