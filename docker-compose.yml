@@ -8,15 +8,16 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      # Mount Nagios status.dat (read-only)
-      - /usr/local/nagios/var/status.dat:/nagios/status.dat:ro
+      # Mount Nagios var directory (read-only) - mounting the directory instead of the file
+      # ensures updates work correctly when Nagios does atomic writes
+      - /usr/local/nagios/var:/nagios/var:ro
       # Mount database directory for persistence
       - ./data:/app/data
       # Mount config (optional - can use environment variables instead)
       - ./config.yaml:/app/config.yaml:ro
     environment:
       # Override config.yaml settings with environment variables
-      - NAGIOS_STATUS_DAT_PATH=/nagios/status.dat
+      - NAGIOS_STATUS_DAT_PATH=/nagios/var/status.dat
       - DATABASE_PATH=/app/data/status.db
       - API_HOST=0.0.0.0
       - API_PORT=8000

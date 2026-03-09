@@ -617,38 +617,246 @@ footer p {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+    /* Reduce overall padding on mobile */
+    .container {
+        padding: 12px;
+    }
+
+    /* Header improvements */
+    header {
+        padding: 20px 16px;
+        margin-bottom: 16px;
+    }
+
     header h1 {
-        font-size: 2rem;
+        font-size: 1.75rem;
+    }
+
+    header > div:first-child {
+        flex-wrap: wrap;
+    }
+
+    header img {
+        width: 40px !important;
+        height: 40px !important;
     }
 
     .header-info {
         flex-direction: column;
-        gap: 10px;
+        gap: 12px;
         align-items: flex-start;
+        width: 100%;
     }
 
+    #last-update {
+        font-size: 0.85rem;
+    }
+
+    /* Button improvements for touch */
+    .btn-refresh, .btn-poll {
+        padding: 10px 18px;
+        font-size: 0.95rem;
+        min-height: 44px;
+        flex: 1;
+    }
+
+    header .header-info > div:last-child {
+        width: 100%;
+    }
+
+    header .header-info > div:last-child > div {
+        display: flex;
+        gap: 8px;
+        width: 100%;
+    }
+
+    /* Status grid - single column */
     .status-grid {
         grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .status-card {
+        padding: 16px;
+        gap: 12px;
+    }
+
+    .status-icon {
+        font-size: 2.5rem;
+    }
+
+    .status-info h3 {
+        font-size: 1rem;
+    }
+
+    .status-counts {
+        font-size: 1.3rem;
+    }
+
+    .status-labels {
+        font-size: 0.8rem;
+    }
+
+    /* Sections */
+    section {
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+
+    section h2 {
+        font-size: 1.3rem;
+        margin-bottom: 12px;
     }
 
     .section-header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 15px;
+        gap: 12px;
     }
 
+    /* Incident filters - horizontal scroll on very small screens */
     .incident-filters {
+        display: flex;
+        flex-direction: row;
+        gap: 12px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .incident-filters label {
+        white-space: nowrap;
+        font-size: 0.85rem;
+    }
+
+    /* Incident/Host/Service items */
+    .incident-item, .host-item, .service-item {
+        padding: 12px;
+    }
+
+    .incident-header, .host-header, .service-header {
         flex-direction: column;
-        gap: 10px;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .incident-title, .host-name, .service-name {
+        font-size: 1rem;
+        word-break: break-word;
+    }
+
+    .incident-state, .host-state, .service-state {
+        align-self: flex-start;
+    }
+
+    .ack-badge {
+        margin-left: 0;
+        margin-top: 4px;
+    }
+
+    .plugin-output {
+        font-size: 0.85rem;
+        padding: 8px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Modal improvements */
+    .modal {
+        padding: 0;
     }
 
     .modal-content {
-        width: 95%;
-        padding: 20px;
+        width: 100%;
+        height: 100%;
+        max-width: 100%;
+        max-height: 100%;
+        border-radius: 0;
+        padding: 16px;
     }
 
+    .close {
+        font-size: 1.75rem;
+        top: 12px;
+        right: 16px;
+        padding: 8px;
+        /* Larger touch target */
+        min-width: 44px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #incident-detail h3 {
+        font-size: 1.1rem;
+    }
+
+    /* Form improvements */
+    .form-group input,
+    .form-group textarea {
+        font-size: 16px; /* Prevents zoom on iOS */
+        padding: 12px;
+    }
+
+    .btn-primary {
+        width: 100%;
+        padding: 14px 24px;
+        font-size: 1rem;
+        min-height: 48px;
+    }
+
+    /* Theme toggle */
     .theme-toggle {
         width: 100%;
+        justify-content: space-between;
+        padding: 8px;
+    }
+
+    .theme-option {
+        flex: 1;
+        padding: 8px 12px;
+        font-size: 0.8rem;
+    }
+
+    /* RSS links */
+    .rss-links {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .rss-link {
+        width: 100%;
         justify-content: center;
+    }
+
+    /* Footer */
+    footer {
+        padding: 20px 16px;
+        font-size: 0.85rem;
+    }
+}
+
+/* Extra small devices (phones in portrait, less than 375px) */
+@media (max-width: 374px) {
+    .container {
+        padding: 8px;
+    }
+
+    header {
+        padding: 16px 12px;
+    }
+
+    header h1 {
+        font-size: 1.5rem;
+    }
+
+    .status-counts {
+        font-size: 1.1rem;
+    }
+
+    .theme-option {
+        font-size: 0.75rem;
+        padding: 6px 8px;
     }
 }

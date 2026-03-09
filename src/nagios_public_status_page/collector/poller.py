@@ -1,8 +1,9 @@
 """Background polling service for Nagios status data."""
 
 import logging
+import threading
 from datetime import datetime
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy.orm import Session
@@ -45,6 +46,13 @@ class StatusPoller:
         self.scheduler = BackgroundScheduler()
         self.is_running = False
 
+        # Self-healing configuration with thread safety
+        self._state_lock = threading.Lock()
+        self._consecutive_failures = 0
+        self._max_consecutive_failures = 3
+        self._recovery_attempts = 0
+        self._last_recovery_time: datetime | None = None
+
         # Initialize database
         self.db = get_database(config.database.path)
 
@@ -56,6 +64,146 @@ class StatusPoller:
         """
         return self.db.get_session()
 
+    def _poll_wrapper(self) -> None:
+        """Wrapper around poll() that implements self-healing.
+
+        This method is called by the scheduler instead of poll() directly.
+
+        A *failure* in this context is either:
+
+        * A completed poll where the returned PollResults dictionary contains one
+          or more entries in its ``errors`` list (for example, stale data, file
+          access problems, or parsing issues). These errors are logged and count
+          toward the consecutive failure threshold.
+        * An unhandled exception raised by :meth:`poll`. Exceptions are treated
+          as critical failures, logged with a full traceback, and also increment
+          the consecutive failure counter.
+
+        Both kinds of failures increment ``_consecutive_failures``. When the
+        number of consecutive failures reaches ``_max_consecutive_failures``,
+        this method invokes ``_attempt_recovery`` to perform automatic
+        self-healing actions.
+        Thread-safe using lock to protect shared state.
+        """
+        try:
+            results = self.poll()
+
+            # Thread-safe access to failure counter
+            with self._state_lock:
+                # Check if poll had errors (stale data, file issues, etc.)
+                if results.get("errors"):
+                    self._consecutive_failures += 1
+                    current_failures = self._consecutive_failures
+                    logger.warning(
+                        "Poll completed with errors (%d/%d consecutive failures)",
+                        current_failures,
+                        self._max_consecutive_failures
+                    )
+
+                    # If we've exceeded the failure threshold, attempt recovery
+                    if current_failures >= self._max_consecutive_failures:
+                        logger.error(
+                            "Maximum consecutive failures (%d) reached, attempting recovery",
+                            self._max_consecutive_failures
+                        )
+                        # Release lock before recovery to avoid deadlock
+                else:
+                    # Successful poll with no errors - reset failure counter
+                    if self._consecutive_failures > 0:
+                        logger.info("Poll successful, resetting failure counter")
+                    self._consecutive_failures = 0
+                    current_failures = 0
+
+            # Attempt recovery outside the lock to avoid deadlock
+            if results.get("errors") and current_failures >= self._max_consecutive_failures:
+                self._attempt_recovery()
+
+        except Exception as exc:  # pylint: disable=broad-except
+            # Unhandled exception in poll - this is critical
+            with self._state_lock:
+                self._consecutive_failures += 1
+                current_failures = self._consecutive_failures
+                logger.exception(
+                    "Critical error in poll (%d/%d consecutive failures): %s",
+                    current_failures,
+                    self._max_consecutive_failures,
+                    exc
+                )
+
+            # If we've had too many failures, attempt recovery (outside lock)
+            if current_failures >= self._max_consecutive_failures:
+                logger.error(
+                    "Maximum consecutive failures (%d) reached after exception, attempting recovery",
+                    self._max_consecutive_failures
+                )
+                self._attempt_recovery()
+
+    def _attempt_recovery(self) -> None:
+        """Attempt to recover from repeated failures by restarting the scheduler.
+
+        This method:
+        1. Checks if enough time has passed since last recovery (prevents rapid recovery loops)
+        2. Stops the current scheduler
+        3. Creates a new scheduler instance
+        4. Restarts polling
+        5. Resets the failure counter
+
+        Thread-safe and includes guards against infinite recursion.
+        """
+        # Minimum time between recovery attempts (5 minutes)
+        MIN_RECOVERY_INTERVAL_SECONDS = 300
+
+        with self._state_lock:
+            # Guard against rapid recovery attempts
+            if self._last_recovery_time:
+                time_since_last_recovery = (datetime.now() - self._last_recovery_time).total_seconds()
+                if time_since_last_recovery < MIN_RECOVERY_INTERVAL_SECONDS:
+                    logger.warning(
+                        "Skipping recovery attempt - only %.1f seconds since last recovery "
+                        "(minimum: %d seconds)",
+                        time_since_last_recovery,
+                        MIN_RECOVERY_INTERVAL_SECONDS
+                    )
+                    return
+
+            self._recovery_attempts += 1
+            self._last_recovery_time = datetime.now()
+            recovery_attempt = self._recovery_attempts
+
+        try:
+            logger.info(
+                "Attempting scheduler recovery (attempt #%d)...",
+                recovery_attempt
+            )
+
+            # Stop the current scheduler
+            if self.is_running and self.scheduler.running:
+                # Use wait=True to allow in-progress jobs to complete before shutdown
+                self.scheduler.shutdown(wait=True)
+                logger.info("Stopped existing scheduler")
+
+            # Mark as not running
+            self.is_running = False
+
+            # Create a new scheduler instance
+            self.scheduler = BackgroundScheduler()
+            logger.info("Created new scheduler instance")
+
+            # Reset failure counter
+            with self._state_lock:
+                self._consecutive_failures = 0
+
+            # Restart polling with the new scheduler
+            self.start()
+            logger.info(
+                "Scheduler recovery successful (recovery attempt #%d)",
+                recovery_attempt
+            )
+
+        except Exception as exc:
+            logger.exception("Failed to recover scheduler: %s", exc)
+            # Reset failure counter after failed recovery to avoid continuous recovery attempts
+            self._consecutive_failures = 0
     def poll(self) -> PollResults:
         """Poll status.dat and update incident tracking.
 
@@ -223,23 +371,24 @@ class StatusPoller:
             logger.warning("Poller is already running")
             return
 
-        # Do an immediate poll
+        # Do an immediate poll using the wrapper
         logger.info("Running initial poll")
-        self.poll()
+        self._poll_wrapper()
 
-        # Schedule recurring polls
+        # Schedule recurring polls using the wrapper (enables self-healing)
         self.scheduler.add_job(
-            self.poll,
+            self._poll_wrapper,
             "interval",
             seconds=self.config.polling.interval_seconds,
             id="status_poll",
             replace_existing=True,
+            max_instances=1,  # Prevent overlapping polls
         )
 
         self.scheduler.start()
         self.is_running = True
         logger.info(
-            "Poller started with interval of %d seconds",
+            "Poller started with interval of %d seconds (self-healing enabled)",
             self.config.polling.interval_seconds,
         )
 
@@ -281,3 +430,44 @@ class StatusPoller:
 
         age = (datetime.now() - last_poll.last_poll_time).total_seconds()
         return age > self.config.polling.staleness_threshold_seconds
+
+    def get_scheduler_status(self) -> dict[str, Any]:
+        """Get the current status of the scheduler for monitoring.
+
+        Thread-safe accessor for scheduler state.
+
+        Returns:
+            Dictionary with scheduler health information
+        """
+        return {
+            "is_running": self.is_running,
+            "scheduler_running": (
+                self.scheduler.running
+                if self.is_running and self.scheduler is not None
+                else False
+            ),
+            "consecutive_failures": self._consecutive_failures,
+            "max_consecutive_failures": self._max_consecutive_failures,
+            "recovery_attempts": self._recovery_attempts,
+            "health_status": self._get_health_status(),
+        }
+
+    def _get_health_status(self) -> str:
+        """Determine the overall health status of the poller.
+
+        Returns:
+            String indicating health: "healthy", "degraded", or "critical"
+        """
+        if not self.is_running:
+            return "critical"
+
+        if (
+            self._consecutive_failures >= self._max_consecutive_failures
+            or self._recovery_attempts > 0
+        ):
+            return "critical"
+
+        if self._consecutive_failures > 0:
+            return "degraded"
+
+        return "healthy"

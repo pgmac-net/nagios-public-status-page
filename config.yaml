@@ -1,5 +1,5 @@
 nagios:
-  status_dat_path: "/usr/local/nagios/var/status.dat"
+  status_dat_path: "/nagios/var/status.dat"
 
   # Filter by hostgroups (requires host_groups field in status.dat)
   hostgroups:

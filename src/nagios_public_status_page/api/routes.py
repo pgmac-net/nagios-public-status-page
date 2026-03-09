@@ -19,6 +19,7 @@ from nagios_public_status_page.api.schemas import (
     IncidentWithComments,
     NagiosCommentResponse,
     PostIncidentReviewUpdate,
+    SchedulerStatusResponse,
     ServiceStatusResponse,
     StatusSummary,
 )
@@ -80,7 +81,57 @@ def verify_write_access(credentials: HTTPBasicCredentials = Depends(security)) -
         )
 
 
-@router.get("/health", response_model=HealthResponse)
+@router.get(
+    "/health",
+    response_model=HealthResponse,
+    summary="Health Check",
+    description="""
+    Check the overall health of the API and monitoring system.
+
+    Returns information about:
+    - API operational status
+    - Last poll time and data freshness
+    - Active incident count
+    - Database connectivity
+    - Scheduler health and self-healing status
+
+    **Status Values:**
+    - `healthy`: System operating normally
+    - `degraded`: Active incidents present
+    - `stale`: Data has not been updated recently
+
+    **Scheduler Health Status:**
+    - `healthy`: Scheduler running normally with no failures
+    - `degraded`: Scheduler running but experiencing some failures
+    - `critical`: Scheduler not running or exceeded failure threshold
+    """,
+    responses={
+        200: {
+            "description": "Health check successful",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "status": "healthy",
+                        "last_poll_time": "2025-01-12T10:30:00",
+                        "status_dat_age_seconds": 45.2,
+                        "data_is_stale": False,
+                        "active_incidents_count": 0,
+                        "database_accessible": True,
+                        "scheduler_status": {
+                            "is_running": True,
+                            "scheduler_running": True,
+                            "consecutive_failures": 0,
+                            "max_consecutive_failures": 3,
+                            "recovery_attempts": 0,
+                            "last_recovery_time": None,
+                            "health_status": "healthy"
+                        }
+                    }
+                }
+            }
+        }
+    }
+)
 def health_check(db: Session = Depends(get_db)) -> HealthResponse:
     """Health check endpoint.
 
@@ -116,6 +167,10 @@ def health_check(db: Session = Depends(get_db)) -> HealthResponse:
         if active_count > 0:
             status = "degraded"
 
+        # Get scheduler status
+        scheduler_status_dict = poller.get_scheduler_status()
+        scheduler_status = SchedulerStatusResponse(**scheduler_status_dict)
+
         poll_time = cast(datetime, last_poll.last_poll_time) if last_poll else None
         return HealthResponse(
             status=status,
@@ -124,6 +179,7 @@ def health_check(db: Session = Depends(get_db)) -> HealthResponse:
             data_is_stale=is_stale,
             active_incidents_count=active_count,
             database_accessible=True,
+            scheduler_status=scheduler_status,
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Health check failed: {exc}") from exc
@@ -159,7 +215,45 @@ def trigger_poll(
         raise HTTPException(status_code=500, detail=f"Poll failed: {exc}") from exc
 
 
-@router.get("/status", response_model=StatusSummary)
+@router.get(
+    "/status",
+    response_model=StatusSummary,
+    summary="Overall Status Summary",
+    description="""
+    Get a comprehensive summary of all monitored hosts and services.
+
+    Returns aggregated counts for:
+    - Host states (UP, DOWN, UNREACHABLE)
+    - Service states (OK, WARNING, CRITICAL, UNKNOWN)
+    - Active incidents
+    - Last poll timestamp
+
+    This endpoint is ideal for dashboard displays and high-level monitoring.
+    """,
+    responses={
+        200: {
+            "description": "Status summary retrieved successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "total_hosts": 10,
+                        "hosts_up": 9,
+                        "hosts_down": 1,
+                        "hosts_unreachable": 0,
+                        "total_services": 50,
+                        "services_ok": 45,
+                        "services_warning": 3,
+                        "services_critical": 2,
+                        "services_unknown": 0,
+                        "active_incidents": 2,
+                        "last_poll": "2025-01-12T10:30:00",
+                        "data_is_stale": False
+                    }
+                }
+            }
+        }
+    }
+)
 def get_status(db: Session = Depends(get_db)) -> StatusSummary:
     """Get overall status summary.
 
@@ -324,7 +418,49 @@ def get_services(db: Session = Depends(get_db)) -> list[ServiceStatusResponse]:
         raise HTTPException(status_code=500, detail=f"Failed to get services: {exc}") from exc
 
 
-@router.get("/incidents", response_model=list[IncidentResponse])
+@router.get(
+    "/incidents",
+    response_model=list[IncidentResponse],
+    summary="List Incidents",
+    description="""
+    Retrieve a list of incidents with optional filtering.
+
+    **Query Parameters:**
+    - `active_only`: Set to `true` to return only ongoing incidents
+    - `hours`: Number of hours to look back (default: 24, ignored if active_only=true)
+
+    **Incident Types:**
+    - `host`: Host is DOWN or UNREACHABLE
+    - `service`: Service is WARNING, CRITICAL, or UNKNOWN
+
+    Incidents are automatically created when problems are detected and closed when resolved.
+    """,
+    responses={
+        200: {
+            "description": "List of incidents retrieved successfully",
+            "content": {
+                "application/json": {
+                    "example": [
+                        {
+                            "id": 123,
+                            "incident_type": "service",
+                            "host_name": "web-server-01",
+                            "service_description": "HTTPS",
+                            "state": "CRITICAL",
+                            "started_at": "2025-01-12T09:15:00",
+                            "ended_at": None,
+                            "last_check": "2025-01-12T10:30:00",
+                            "plugin_output": "Connection refused",
+                            "post_incident_review_url": None,
+                            "acknowledged": False,
+                            "is_active": True
+                        }
+                    ]
+                }
+            }
+        }
+    }
+)
 def get_incidents(
     active_only: bool = False,
     hours: int = 24,
@@ -388,7 +524,42 @@ def get_incident(incident_id: int, db: Session = Depends(get_db)) -> IncidentWit
         ) from exc
 
 
-@router.post("/incidents/{incident_id}/comments", response_model=CommentResponse, status_code=201)
+@router.post(
+    "/incidents/{incident_id}/comments",
+    response_model=CommentResponse,
+    status_code=201,
+    summary="Add Comment to Incident",
+    description="""
+    Add a comment to an existing incident.
+
+    **Authentication Required**: This endpoint requires HTTP Basic Authentication.
+
+    Use this to provide updates during an incident, coordinate response efforts,
+    or document resolution steps.
+
+    **Request Body:**
+    - `author`: Name of the person adding the comment
+    - `comment_text`: The comment content (supports plain text)
+    """,
+    responses={
+        201: {
+            "description": "Comment created successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "id": 456,
+                        "incident_id": 123,
+                        "author": "Jane Smith",
+                        "comment_text": "Database failover completed successfully",
+                        "created_at": "2025-01-12T10:45:00"
+                    }
+                }
+            }
+        },
+        401: {"description": "Authentication required or invalid credentials"},
+        404: {"description": "Incident not found"}
+    }
+)
 def add_comment(
     incident_id: int,
     comment: CommentCreate,
@@ -479,7 +650,31 @@ def update_pir_url(
 # RSS Feed Endpoints
 
 
-@rss_router.get("/rss.xml")
+@rss_router.get(
+    "/rss.xml",
+    summary="Global RSS Feed",
+    description="""
+    Subscribe to an RSS feed of all recent incidents.
+
+    **Query Parameters:**
+    - `hours`: Number of hours to look back (default: 24)
+
+    Use this feed to get real-time notifications about all incidents
+    in your RSS reader or automation tools.
+
+    **Content-Type:** `application/rss+xml`
+    """,
+    responses={
+        200: {
+            "description": "RSS feed generated successfully",
+            "content": {
+                "application/rss+xml": {
+                    "example": '<?xml version="1.0" encoding="utf-8"?><rss version="2.0">...</rss>'
+                }
+            }
+        }
+    }
+)
 def get_global_rss_feed(hours: int = 24, db: Session = Depends(get_db)) -> Response:
     """Get RSS feed for all recent incidents.
 
