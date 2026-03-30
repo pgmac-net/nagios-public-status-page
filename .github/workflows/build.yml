@@ -83,7 +83,7 @@ jobs:
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta_ghcr
-        uses: docker/metadata-action@11079342065fb7d2c3b37cb799ab6ecc01ad1bb2
+        uses: docker/metadata-action@4378dc6be7f72231dfe78ac7e0364a44f1c9f54b
         with:
           images: ghcr.io/${{ env.IMAGE_NAME }}
           tags: |
@@ -98,7 +98,7 @@ jobs:
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta_docker
-        uses: docker/metadata-action@11079342065fb7d2c3b37cb799ab6ecc01ad1bb2
+        uses: docker/metadata-action@4378dc6be7f72231dfe78ac7e0364a44f1c9f54b
         with:
           images: |
             pgmac/nagios-public-status-page
