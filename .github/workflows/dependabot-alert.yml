@@ -1,0 +1,69 @@
+name: Dependabot Alert Management
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  get-alerts:
+    name: List High/Critical Alerts
+    runs-on: self-hosted
+    outputs:
+      matrix: ${{ steps.alerts.outputs.matrix }}
+      has_alerts: ${{ steps.alerts.outputs.has_alerts }}
+    steps:
+      - name: Fetch open high/critical Dependabot alerts
+        id: alerts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          ALERTS=$(gh api "/repos/${REPO}/dependabot/alerts" \
+            --jq '[.[] | select(.state == "open") | select(.security_vulnerability.severity | test("^(high|critical)$"))]')
+
+          COUNT=$(echo "$ALERTS" | jq 'length')
+          echo "Found ${COUNT} high/critical open alert(s)"
+
+          if [ "$COUNT" -eq 0 ]; then
+            echo "has_alerts=false" >> "$GITHUB_OUTPUT"
+            echo "matrix={\"include\":[]}" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_alerts=true" >> "$GITHUB_OUTPUT"
+            MATRIX=$(echo "$ALERTS" | jq -c '{include: [.[] | {
+              alert_number: (.number | tostring),
+              package_name: .dependency.package.name,
+              package_ecosystem: .dependency.package.ecosystem,
+              severity: .security_vulnerability.severity,
+              summary: .security_advisory.summary,
+              cve_id: (.security_advisory.cve_id // ""),
+              ghsa_id: .security_advisory.ghsa_id,
+              vulnerable_version_range: .security_vulnerability.vulnerable_version_range,
+              first_patched_version: (.security_vulnerability.first_patched_version.identifier // "")
+            }]}')
+            echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
+          fi
+
+  manage:
+    name: Process Alert
+    needs: get-alerts
+    if: needs.get-alerts.outputs.has_alerts == 'true'
+    strategy:
+      matrix: ${{ fromJSON(needs.get-alerts.outputs.matrix) }}
+      fail-fast: false
+    uses: pgmac-net/pg-actions/.github/workflows/dependabot-management.yml@main
+    with:
+      alert_number: ${{ matrix.alert_number }}
+      package_name: ${{ matrix.package_name }}
+      package_ecosystem: ${{ matrix.package_ecosystem }}
+      severity: ${{ matrix.severity }}
+      summary: ${{ matrix.summary }}
+      cve_id: ${{ matrix.cve_id }}
+      ghsa_id: ${{ matrix.ghsa_id }}
+      vulnerable_version_range: ${{ matrix.vulnerable_version_range }}
+      first_patched_version: ${{ matrix.first_patched_version }}
+    secrets: inherit
