@@ -2,7 +2,7 @@ name: Dependabot Alert Management
 
 on:
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 16 * * 0'  # Monday 02:00 AEST (UTC+10)
   workflow_dispatch:
 
 permissions:
