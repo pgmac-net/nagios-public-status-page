@@ -25,7 +25,7 @@ jobs:
       - run: uv sync
 
       - name: Run Ruff
-        uses: astral-sh/ruff-action@v3 # Use the official action
+        uses: astral-sh/ruff-action@v4 # Use the official action
         with:
           # Optional: specify arguments (default is 'check')
           args: "check --output-format=github"
@@ -42,9 +42,8 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v7
         with:
-          file: ./coverage.xml
+          files: ./coverage.xml
           flags: unittests
-          name: codecov-umbrella
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
 
@@ -94,7 +93,7 @@ jobs:
         run: exit 1
 
       - name: Typecheck with ty
-        run: uvx ty check src
+        run: uv run --with ty ty check src
 
       - name: Generate job summary
         if: always()

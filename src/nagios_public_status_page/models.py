@@ -2,10 +2,12 @@
 
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-Base = declarative_base()
+
+class Base(DeclarativeBase):
+    pass
 
 
 class Incident(Base):
@@ -13,21 +15,21 @@ class Incident(Base):
 
     __tablename__ = "incidents"
 
-    id = Column(Integer, primary_key=True)
-    incident_type = Column(String(20), nullable=False)  # 'host' or 'service'
-    host_name = Column(String(255), nullable=False, index=True)
-    service_description = Column(String(255), nullable=True)  # NULL for host incidents
-    state = Column(String(20), nullable=False)  # WARNING, CRITICAL, DOWN, etc.
-    started_at = Column(DateTime, nullable=False, index=True)
-    ended_at = Column(DateTime, nullable=True, index=True)
-    last_check = Column(DateTime, nullable=True)
-    plugin_output = Column(Text, nullable=True)
-    post_incident_review_url = Column(String(512), nullable=True)  # Link to PIR document
-    acknowledged = Column(Integer, default=0, nullable=False)  # 0=not acked, 1=acked
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    incident_type: Mapped[str] = mapped_column(String(20))
+    host_name: Mapped[str] = mapped_column(String(255), index=True)
+    service_description: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    state: Mapped[str] = mapped_column(String(20))
+    started_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
+    last_check: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    plugin_output: Mapped[str | None] = mapped_column(Text, nullable=True)
+    post_incident_review_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    acknowledged: Mapped[int] = mapped_column(Integer, default=0)
 
     # Relationships
-    comments = relationship("Comment", back_populates="incident", cascade="all, delete-orphan")
-    nagios_comments = relationship("NagiosComment", back_populates="incident", cascade="all, delete-orphan")
+    comments: Mapped[list["Comment"]] = relationship("Comment", back_populates="incident", cascade="all, delete-orphan")
+    nagios_comments: Mapped[list["NagiosComment"]] = relationship("NagiosComment", back_populates="incident", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         """Return string representation."""
@@ -63,14 +65,14 @@ class Comment(Base):
 
     __tablename__ = "comments"
 
-    id = Column(Integer, primary_key=True)
-    incident_id = Column(Integer, ForeignKey("incidents.id"), nullable=False, index=True)
-    author = Column(String(255), nullable=False)
-    comment_text = Column(Text, nullable=False)
-    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), index=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    incident_id: Mapped[int] = mapped_column(Integer, ForeignKey("incidents.id"), index=True)
+    author: Mapped[str] = mapped_column(String(255))
+    comment_text: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
     # Relationships
-    incident = relationship("Incident", back_populates="comments")
+    incident: Mapped["Incident"] = relationship("Incident", back_populates="comments")
 
     def __repr__(self) -> str:
         """Return string representation."""
@@ -92,16 +94,16 @@ class NagiosComment(Base):
 
     __tablename__ = "nagios_comments"
 
-    id = Column(Integer, primary_key=True)
-    incident_id = Column(Integer, ForeignKey("incidents.id"), nullable=True, index=True)
-    entry_time = Column(DateTime, nullable=False, index=True)
-    author = Column(String(255), nullable=False)
-    comment_data = Column(Text, nullable=False)
-    host_name = Column(String(255), nullable=False, index=True)
-    service_description = Column(String(255), nullable=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    incident_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("incidents.id"), nullable=True, index=True)
+    entry_time: Mapped[datetime] = mapped_column(DateTime, index=True)
+    author: Mapped[str] = mapped_column(String(255))
+    comment_data: Mapped[str] = mapped_column(Text)
+    host_name: Mapped[str] = mapped_column(String(255), index=True)
+    service_description: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     # Relationships
-    incident = relationship("Incident", back_populates="nagios_comments")
+    incident: Mapped["Incident | None"] = relationship("Incident", back_populates="nagios_comments")
 
     def __repr__(self) -> str:
         """Return string representation."""
@@ -125,10 +127,10 @@ class PollMetadata(Base):
 
     __tablename__ = "poll_metadata"
 
-    id = Column(Integer, primary_key=True)
-    last_poll_time = Column(DateTime, nullable=False, index=True)
-    status_dat_mtime = Column(DateTime, nullable=False)
-    records_processed = Column(Integer, nullable=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    last_poll_time: Mapped[datetime] = mapped_column(DateTime, index=True)
+    status_dat_mtime: Mapped[datetime] = mapped_column(DateTime)
+    records_processed: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     def __repr__(self) -> str:
         """Return string representation."""
