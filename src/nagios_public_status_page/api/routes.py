@@ -3,7 +3,6 @@
 import secrets
 from collections.abc import Generator
 from datetime import datetime
-from typing import cast
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
@@ -171,7 +170,7 @@ def health_check(db: Session = Depends(get_db)) -> HealthResponse:
         scheduler_status_dict = poller.get_scheduler_status()
         scheduler_status = SchedulerStatusResponse(**scheduler_status_dict)
 
-        poll_time = cast(datetime, last_poll.last_poll_time) if last_poll else None
+        poll_time = last_poll.last_poll_time if last_poll else None
         return HealthResponse(
             status=status,
             last_poll_time=poll_time,
@@ -310,7 +309,7 @@ def get_status(db: Session = Depends(get_db)) -> StatusSummary:
         last_poll = poller.get_last_poll()
         is_stale = poller.is_data_stale()
 
-        poll_time = cast(datetime, last_poll.last_poll_time) if last_poll else None
+        poll_time = last_poll.last_poll_time if last_poll else None
         return StatusSummary(
             total_hosts=len(hosts),
             hosts_up=hosts_up,
