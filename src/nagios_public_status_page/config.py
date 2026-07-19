@@ -64,6 +64,27 @@ class APIConfig(BaseModel):
     )
 
 
+class GraphConfig(BaseModel):
+    """Signed nagiosgraph proxy configuration."""
+
+    nagiosgraph_url: str | None = Field(
+        default=None,
+        description="Base URL of the internal nagiosgraph CGI (e.g. http://nagios.int/cgi-bin)",
+    )
+    signing_secret: str | None = Field(
+        default=None, description="Shared HMAC secret used to sign/verify graph URLs"
+    )
+    default_ttl_seconds: int = Field(
+        default=604800, description="Default signature lifetime for generated graph URLs (7 days)"
+    )
+    basic_auth_username: str | None = Field(
+        default=None, description="Username for nagiosgraph CGI basic auth, if required"
+    )
+    basic_auth_password: str | None = Field(
+        default=None, description="Password for nagiosgraph CGI basic auth, if required"
+    )
+
+
 class RSSConfig(BaseModel):
     """RSS feed configuration."""
 
@@ -94,6 +115,7 @@ class Config(BaseModel):
     polling: PollingConfig = Field(default_factory=PollingConfig)
     database: DatabaseConfig = Field(default_factory=DatabaseConfig)
     api: APIConfig = Field(default_factory=APIConfig)
+    graph: GraphConfig = Field(default_factory=GraphConfig)
     rss: RSSConfig = Field(default_factory=RSSConfig)
     incidents: IncidentsConfig = Field(default_factory=IncidentsConfig)
     comments: CommentsConfig = Field(default_factory=CommentsConfig)
@@ -177,6 +199,21 @@ def load_config(config_path: str | Path = "config.yaml") -> Config:
 
     if auth_password := os.getenv("API_BASIC_AUTH_PASSWORD"):
         config_data.setdefault("api", {})["basic_auth_password"] = auth_password
+
+    if nagiosgraph_url := os.getenv("GRAPH_NAGIOSGRAPH_URL"):
+        config_data.setdefault("graph", {})["nagiosgraph_url"] = nagiosgraph_url
+
+    if signing_secret := os.getenv("GRAPH_SIGNING_SECRET"):
+        config_data.setdefault("graph", {})["signing_secret"] = signing_secret
+
+    if graph_ttl := os.getenv("GRAPH_DEFAULT_TTL_SECONDS"):
+        config_data.setdefault("graph", {})["default_ttl_seconds"] = int(graph_ttl)
+
+    if graph_auth_username := os.getenv("GRAPH_BASIC_AUTH_USERNAME"):
+        config_data.setdefault("graph", {})["basic_auth_username"] = graph_auth_username
+
+    if graph_auth_password := os.getenv("GRAPH_BASIC_AUTH_PASSWORD"):
+        config_data.setdefault("graph", {})["basic_auth_password"] = graph_auth_password
 
     if rss_title := os.getenv("RSS_TITLE"):
         config_data.setdefault("rss", {})["title"] = rss_title

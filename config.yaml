@@ -41,6 +41,19 @@ api:
   basic_auth_username: null  # Set to enable auth (e.g., "admin")
   basic_auth_password: null  # Set to enable auth (e.g., "secure-password")
 
+# Signed nagiosgraph proxy, used by /api/graph. Lets external services
+# (e.g. Slack notifications) render a graph image without reaching the
+# internal, Access-protected Nagios instance directly.
+# Can also be set via environment variables:
+#   GRAPH_NAGIOSGRAPH_URL, GRAPH_SIGNING_SECRET, GRAPH_DEFAULT_TTL_SECONDS,
+#   GRAPH_BASIC_AUTH_USERNAME, GRAPH_BASIC_AUTH_PASSWORD
+graph:
+  nagiosgraph_url: null  # e.g. "http://nagios.int.pgmac.net/cgi-bin"
+  signing_secret: null  # Set to enable the /api/graph endpoint
+  default_ttl_seconds: 604800  # 7 days
+  basic_auth_username: null
+  basic_auth_password: null
+
 rss:
   title: "System Status"
   description: "Public status updates"
