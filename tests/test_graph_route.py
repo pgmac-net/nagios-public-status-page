@@ -55,18 +55,7 @@ def test_graph_returns_400_for_invalid_signature(client, monkeypatch):
     assert response.status_code == 400
 
 
-def test_graph_proxies_png_on_valid_signature(client, monkeypatch):
-    monkeypatch.setattr("nagios_public_status_page.config.load_config", make_config)
-
-    params = sign_graph_params("macro", "plexweb", "day", SECRET, ttl_seconds=60)
-
-    class FakeResponse:
-        status_code = 200
-        content = b"fake-png-bytes"
-
-        def raise_for_status(self):
-            pass
-
+def _fake_async_client(response):
     class FakeAsyncClient:
         def __init__(self, *args, **kwargs):
             pass
@@ -78,15 +67,52 @@ def test_graph_proxies_png_on_valid_signature(client, monkeypatch):
             return False
 
         async def get(self, *args, **kwargs):
-            return FakeResponse()
+            return response
 
-    monkeypatch.setattr(httpx, "AsyncClient", FakeAsyncClient)
+    return FakeAsyncClient
+
+
+class _FakeResponse:
+    def __init__(self, content, status_code=200):
+        self.content = content
+        self.status_code = status_code
+
+    def raise_for_status(self):
+        pass
+
+
+REAL_PNG_BYTES = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDRfake-rest-of-file"
+
+
+def test_graph_proxies_png_on_valid_signature(client, monkeypatch):
+    monkeypatch.setattr("nagios_public_status_page.config.load_config", make_config)
+
+    params = sign_graph_params("macro", "plexweb", "day", SECRET, ttl_seconds=60)
+
+    monkeypatch.setattr(
+        httpx, "AsyncClient", _fake_async_client(_FakeResponse(REAL_PNG_BYTES))
+    )
 
     response = client.get("/api/graph", params=params)
 
     assert response.status_code == 200
     assert response.headers["content-type"] == "image/png"
-    assert response.content == b"fake-png-bytes"
+    assert response.content == REAL_PNG_BYTES
+
+
+def test_graph_returns_502_when_upstream_body_is_not_a_png(client, monkeypatch):
+    monkeypatch.setattr("nagios_public_status_page.config.load_config", make_config)
+
+    params = sign_graph_params("macro", "plexweb", "day", SECRET, ttl_seconds=60)
+
+    html_body = b"<!DOCTYPE html><html><body>not a graph</body></html>"
+    monkeypatch.setattr(
+        httpx, "AsyncClient", _fake_async_client(_FakeResponse(html_body))
+    )
+
+    response = client.get("/api/graph", params=params)
+
+    assert response.status_code == 502
 
 
 def test_graph_returns_502_on_upstream_error(client, monkeypatch):

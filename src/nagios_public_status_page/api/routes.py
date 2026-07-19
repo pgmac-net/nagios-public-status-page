@@ -478,7 +478,7 @@ async def get_graph(host: str, service: str, period: str, expires: int, sig: str
     if graph_config.basic_auth_username and graph_config.basic_auth_password:
         auth = (graph_config.basic_auth_username, graph_config.basic_auth_password)
 
-    target_url = f"{graph_config.nagiosgraph_url.rstrip('/')}/show.cgi"
+    target_url = f"{graph_config.nagiosgraph_url.rstrip('/')}/showgraph.cgi"
     params = {"host": host, "service": service, "period": period}
 
     try:
@@ -489,6 +489,16 @@ async def get_graph(host: str, service: str, period: str, expires: int, sig: str
         raise HTTPException(
             status_code=502, detail=f"Failed to fetch graph from nagiosgraph: {exc}"
         ) from exc
+
+    # nagiosgraph can return a 200 with an HTML page (e.g. no perfdata for
+    # this host/service) instead of a real image. Never forward that as
+    # image/png — callers like Slack reject the whole message on bad image
+    # data, so a content-level check here is the only thing standing between
+    # a nagiosgraph quirk and every downstream notification silently dying.
+    if not upstream.content.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise HTTPException(
+            status_code=502, detail="nagiosgraph did not return a valid PNG"
+        )
 
     return Response(content=upstream.content, media_type="image/png")
 
