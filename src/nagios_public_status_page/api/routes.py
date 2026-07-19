@@ -4,11 +4,13 @@ import secrets
 from collections.abc import Generator
 from datetime import datetime
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sqlalchemy.orm import Session
 
+from nagios_public_status_page.api.graph_signing import GraphRequest, verify_graph_signature
 from nagios_public_status_page.api.schemas import (
     CommentCreate,
     CommentResponse,
@@ -415,6 +417,80 @@ def get_services(db: Session = Depends(get_db)) -> list[ServiceStatusResponse]:
         ]
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Failed to get services: {exc}") from exc
+
+
+@router.get(
+    "/graph",
+    summary="Signed Nagiosgraph Proxy",
+    description="""
+    Proxy a nagiosgraph PNG graph image using a signed, expiring URL.
+
+    This exists so external services (e.g. Slack) that cannot reach the
+    internal, Access-protected Nagios instance can still render an inline
+    graph. Only `host`, `service`, and `period` are forwarded to the
+    internal nagiosgraph CGI, and `period` is restricted to a fixed
+    whitelist, so this endpoint cannot be used as an arbitrary proxy.
+
+    **Query Parameters:**
+    - `host`: Nagios host name
+    - `service`: Nagios service description
+    - `period`: One of `day`, `week`, `month`, `quarter`, `year`
+    - `expires`: Unix timestamp the signature expires at
+    - `sig`: HMAC-SHA256 signature over `host|service|period|expires`
+    """,
+    responses={
+        200: {"description": "Graph PNG", "content": {"image/png": {}}},
+        400: {"description": "Invalid or expired signature"},
+        502: {"description": "Failed to fetch graph from nagiosgraph"},
+        503: {"description": "Graph proxy not configured"},
+    },
+)
+async def get_graph(host: str, service: str, period: str, expires: int, sig: str) -> Response:
+    """Proxy a signed nagiosgraph PNG image.
+
+    Args:
+        host: Nagios host name.
+        service: Nagios service description.
+        period: Graph period (must be in the allowed whitelist).
+        expires: Unix timestamp the signature expires at.
+        sig: HMAC-SHA256 signature over host|service|period|expires.
+
+    Returns:
+        PNG image response.
+
+    Raises:
+        HTTPException: If the signature is invalid/expired, the proxy is
+            unconfigured, or the upstream fetch fails.
+    """
+    from nagios_public_status_page.config import load_config
+
+    config = load_config()
+    graph_config = config.graph
+
+    if not graph_config.nagiosgraph_url or not graph_config.signing_secret:
+        raise HTTPException(status_code=503, detail="Graph proxy is not configured")
+
+    request = GraphRequest(host=host, service=service, period=period, expires=expires)
+    if not verify_graph_signature(request, sig, graph_config.signing_secret):
+        raise HTTPException(status_code=400, detail="Invalid or expired signature")
+
+    auth = None
+    if graph_config.basic_auth_username and graph_config.basic_auth_password:
+        auth = (graph_config.basic_auth_username, graph_config.basic_auth_password)
+
+    target_url = f"{graph_config.nagiosgraph_url.rstrip('/')}/show.cgi"
+    params = {"host": host, "service": service, "period": period}
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            upstream = await client.get(target_url, params=params, auth=auth)
+            upstream.raise_for_status()
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=502, detail=f"Failed to fetch graph from nagiosgraph: {exc}"
+        ) from exc
+
+    return Response(content=upstream.content, media_type="image/png")
 
 
 @router.get(

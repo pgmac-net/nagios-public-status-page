@@ -27,6 +27,10 @@ services:
       # Polling configuration
       - POLLING_INTERVAL_SECONDS=300
       - POLLING_STALENESS_THRESHOLD_SECONDS=600
+      # Signed nagiosgraph proxy (used by /api/graph, e.g. for Slack notifications)
+      # - GRAPH_NAGIOSGRAPH_URL=http://nagios.int.pgmac.net/cgi-bin
+      # - GRAPH_SIGNING_SECRET=change-me
+      # - GRAPH_DEFAULT_TTL_SECONDS=604800
       # RSS configuration
       - RSS_TITLE=System Status
       - RSS_LINK=https://status.example.com
