@@ -115,6 +115,46 @@ def test_graph_returns_502_when_upstream_body_is_not_a_png(client, monkeypatch):
     assert response.status_code == 502
 
 
+def test_graph_forwards_offset_to_upstream(client, monkeypatch):
+    monkeypatch.setattr("nagios_public_status_page.config.load_config", make_config)
+
+    params = sign_graph_params("macro", "plexweb", "day", SECRET, ttl_seconds=60, offset=3600)
+
+    captured_params = {}
+
+    class FakeAsyncClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def get(self, url, params=None, auth=None):
+            captured_params.update(params or {})
+            return _FakeResponse(REAL_PNG_BYTES)
+
+    monkeypatch.setattr(httpx, "AsyncClient", FakeAsyncClient)
+
+    response = client.get("/api/graph", params=params)
+
+    assert response.status_code == 200
+    assert captured_params["offset"] == 3600
+
+
+def test_graph_returns_400_when_offset_is_tampered(client, monkeypatch):
+    monkeypatch.setattr("nagios_public_status_page.config.load_config", make_config)
+
+    params = sign_graph_params("macro", "plexweb", "day", SECRET, ttl_seconds=60, offset=3600)
+    params["offset"] = "0"
+
+    response = client.get("/api/graph", params=params)
+
+    assert response.status_code == 400
+
+
 def test_graph_returns_502_on_upstream_error(client, monkeypatch):
     monkeypatch.setattr("nagios_public_status_page.config.load_config", make_config)
 

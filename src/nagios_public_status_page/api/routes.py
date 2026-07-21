@@ -435,8 +435,9 @@ def get_services(db: Session = Depends(get_db)) -> list[ServiceStatusResponse]:
     - `host`: Nagios host name
     - `service`: Nagios service description
     - `period`: One of `day`, `week`, `month`, `quarter`, `year`
+    - `offset`: Seconds to shift the graph window backward from now (0 = live)
     - `expires`: Unix timestamp the signature expires at
-    - `sig`: HMAC-SHA256 signature over `host|service|period|expires`
+    - `sig`: HMAC-SHA256 signature over `host|service|period|offset|expires`
     """,
     responses={
         200: {"description": "Graph PNG", "content": {"image/png": {}}},
@@ -445,7 +446,9 @@ def get_services(db: Session = Depends(get_db)) -> list[ServiceStatusResponse]:
         503: {"description": "Graph proxy not configured"},
     },
 )
-async def get_graph(host: str, service: str, period: str, expires: int, sig: str) -> Response:
+async def get_graph(
+    host: str, service: str, period: str, expires: int, sig: str, offset: int = 0
+) -> Response:
     """Proxy a signed nagiosgraph PNG image.
 
     Args:
@@ -453,7 +456,8 @@ async def get_graph(host: str, service: str, period: str, expires: int, sig: str
         service: Nagios service description.
         period: Graph period (must be in the allowed whitelist).
         expires: Unix timestamp the signature expires at.
-        sig: HMAC-SHA256 signature over host|service|period|expires.
+        sig: HMAC-SHA256 signature over host|service|period|offset|expires.
+        offset: Seconds to shift the graph window backward from now.
 
     Returns:
         PNG image response.
@@ -470,7 +474,7 @@ async def get_graph(host: str, service: str, period: str, expires: int, sig: str
     if not graph_config.nagiosgraph_url or not graph_config.signing_secret:
         raise HTTPException(status_code=503, detail="Graph proxy is not configured")
 
-    request = GraphRequest(host=host, service=service, period=period, expires=expires)
+    request = GraphRequest(host=host, service=service, period=period, offset=offset, expires=expires)
     if not verify_graph_signature(request, sig, graph_config.signing_secret):
         raise HTTPException(status_code=400, detail="Invalid or expired signature")
 
@@ -479,7 +483,7 @@ async def get_graph(host: str, service: str, period: str, expires: int, sig: str
         auth = (graph_config.basic_auth_username, graph_config.basic_auth_password)
 
     target_url = f"{graph_config.nagiosgraph_url.rstrip('/')}/showgraph.cgi"
-    params = {"host": host, "service": service, "period": period}
+    params = {"host": host, "service": service, "period": period, "offset": offset}
 
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
