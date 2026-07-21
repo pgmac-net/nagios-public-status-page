@@ -22,15 +22,18 @@ class GraphRequest:
     host: str
     service: str
     period: str
+    offset: int
     expires: int
 
     def payload(self) -> bytes:
         """Canonical byte payload that gets HMAC-signed."""
-        return f"{self.host}|{self.service}|{self.period}|{self.expires}".encode("utf-8")
+        return f"{self.host}|{self.service}|{self.period}|{self.offset}|{self.expires}".encode(
+            "utf-8"
+        )
 
 
 def sign_graph_params(
-    host: str, service: str, period: str, secret: str, ttl_seconds: int
+    host: str, service: str, period: str, secret: str, ttl_seconds: int, offset: int = 0
 ) -> dict[str, str]:
     """Build signed, expiring query params for the graph proxy endpoint.
 
@@ -40,9 +43,11 @@ def sign_graph_params(
         period: Graph period; must be one of ALLOWED_PERIODS.
         secret: Shared HMAC signing secret.
         ttl_seconds: Seconds until the signature expires.
+        offset: Seconds to shift the graph window backward from now — lets
+            the graph render as of a point in time rather than live.
 
     Returns:
-        Query params (host, service, period, expires, sig) for /api/graph.
+        Query params (host, service, period, offset, expires, sig) for /api/graph.
 
     Raises:
         ValueError: If period is not in ALLOWED_PERIODS.
@@ -51,13 +56,14 @@ def sign_graph_params(
         raise ValueError(f"period must be one of {sorted(ALLOWED_PERIODS)}, got {period!r}")
 
     expires = int(time.time()) + ttl_seconds
-    request = GraphRequest(host=host, service=service, period=period, expires=expires)
+    request = GraphRequest(host=host, service=service, period=period, offset=offset, expires=expires)
     sig = hmac.new(secret.encode("utf-8"), request.payload(), hashlib.sha256).hexdigest()
 
     return {
         "host": host,
         "service": service,
         "period": period,
+        "offset": str(offset),
         "expires": str(expires),
         "sig": sig,
     }
