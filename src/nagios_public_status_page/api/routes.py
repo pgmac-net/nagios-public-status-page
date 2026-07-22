@@ -1,6 +1,7 @@
 """FastAPI routes for the status page API."""
 
 import secrets
+import time
 from collections.abc import Generator
 from datetime import datetime
 
@@ -435,9 +436,9 @@ def get_services(db: Session = Depends(get_db)) -> list[ServiceStatusResponse]:
     - `host`: Nagios host name
     - `service`: Nagios service description
     - `period`: One of `day`, `week`, `month`, `quarter`, `year`
-    - `offset`: Seconds to shift the graph window backward from now (0 = live)
+    - `timet`: Absolute unix epoch to anchor the graph window to (0 = live)
     - `expires`: Unix timestamp the signature expires at
-    - `sig`: HMAC-SHA256 signature over `host|service|period|offset|expires`
+    - `sig`: HMAC-SHA256 signature over `host|service|period|timet|expires`
     """,
     responses={
         200: {"description": "Graph PNG", "content": {"image/png": {}}},
@@ -447,7 +448,7 @@ def get_services(db: Session = Depends(get_db)) -> list[ServiceStatusResponse]:
     },
 )
 async def get_graph(
-    host: str, service: str, period: str, expires: int, sig: str, offset: int = 0
+    host: str, service: str, period: str, expires: int, sig: str, timet: int = 0
 ) -> Response:
     """Proxy a signed nagiosgraph PNG image.
 
@@ -456,8 +457,8 @@ async def get_graph(
         service: Nagios service description.
         period: Graph period (must be in the allowed whitelist).
         expires: Unix timestamp the signature expires at.
-        sig: HMAC-SHA256 signature over host|service|period|offset|expires.
-        offset: Seconds to shift the graph window backward from now.
+        sig: HMAC-SHA256 signature over host|service|period|timet|expires.
+        timet: Absolute unix epoch to anchor the graph window to (0 = live).
 
     Returns:
         PNG image response.
@@ -474,13 +475,20 @@ async def get_graph(
     if not graph_config.nagiosgraph_url or not graph_config.signing_secret:
         raise HTTPException(status_code=503, detail="Graph proxy is not configured")
 
-    request = GraphRequest(host=host, service=service, period=period, offset=offset, expires=expires)
+    request = GraphRequest(host=host, service=service, period=period, timet=timet, expires=expires)
     if not verify_graph_signature(request, sig, graph_config.signing_secret):
         raise HTTPException(status_code=400, detail="Invalid or expired signature")
 
     auth = None
     if graph_config.basic_auth_username and graph_config.basic_auth_password:
         auth = (graph_config.basic_auth_username, graph_config.basic_auth_password)
+
+    # offset is computed per request (not baked into the signed URL) so the
+    # window stays anchored to timet regardless of when this URL is fetched
+    # or re-fetched (e.g. by Slack's image proxy, potentially days later).
+    offset = 0
+    if timet > 0:
+        offset = max(0, int(time.time()) - timet)
 
     target_url = f"{graph_config.nagiosgraph_url.rstrip('/')}/showgraph.cgi"
     params = {"host": host, "service": service, "period": period, "offset": offset}
