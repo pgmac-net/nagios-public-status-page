@@ -19,7 +19,7 @@ def _request_from_params(params: dict[str, str]) -> GraphRequest:
         host=params["host"],
         service=params["service"],
         period=params["period"],
-        offset=int(params["offset"]),
+        timet=int(params["timet"]),
         expires=int(params["expires"]),
     )
 
@@ -43,21 +43,21 @@ def test_verify_rejects_tampered_host():
         host="different-host",
         service=tampered.service,
         period=tampered.period,
-        offset=tampered.offset,
+        timet=tampered.timet,
         expires=tampered.expires,
     )
 
     assert not verify_graph_signature(tampered, params["sig"], SECRET)
 
 
-def test_verify_rejects_tampered_offset():
-    params = sign_graph_params("macro", "plexweb", "day", SECRET, ttl_seconds=60, offset=3600)
+def test_verify_rejects_tampered_timet():
+    params = sign_graph_params("macro", "plexweb", "day", SECRET, ttl_seconds=60, timet=3600)
     tampered = _request_from_params(params)
     tampered = GraphRequest(
         host=tampered.host,
         service=tampered.service,
         period=tampered.period,
-        offset=0,
+        timet=0,
         expires=tampered.expires,
     )
 
@@ -77,7 +77,7 @@ def test_verify_rejects_disallowed_period():
         host=request.host,
         service=request.service,
         period="not-a-real-period",
-        offset=request.offset,
+        timet=request.timet,
         expires=request.expires,
     )
 
@@ -95,16 +95,16 @@ def test_expires_is_in_the_future_for_positive_ttl():
     assert int(params["expires"]) > time.time()
 
 
-def test_offset_defaults_to_zero():
+def test_timet_defaults_to_zero():
     params = sign_graph_params("macro", "plexweb", "day", SECRET, ttl_seconds=60)
 
-    assert params["offset"] == "0"
+    assert params["timet"] == "0"
 
 
-def test_sign_and_verify_round_trip_with_offset():
-    params = sign_graph_params("macro", "plexweb", "day", SECRET, ttl_seconds=60, offset=3600)
+def test_sign_and_verify_round_trip_with_timet():
+    params = sign_graph_params("macro", "plexweb", "day", SECRET, ttl_seconds=60, timet=3600)
 
-    assert params["offset"] == "3600"
+    assert params["timet"] == "3600"
     assert verify_graph_signature(_request_from_params(params), params["sig"], SECRET)
 
 

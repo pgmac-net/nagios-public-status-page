@@ -115,10 +115,54 @@ def test_graph_returns_502_when_upstream_body_is_not_a_png(client, monkeypatch):
     assert response.status_code == 502
 
 
-def test_graph_forwards_offset_to_upstream(client, monkeypatch):
+def test_graph_computes_offset_from_timet_at_request_time(client, monkeypatch):
+    """offset must be derived from timet at fetch time, not baked into the
+    signed URL — otherwise the window drifts back to "live" the moment the
+    URL is re-fetched later than it was signed (e.g. by Slack's image proxy).
+    """
     monkeypatch.setattr("nagios_public_status_page.config.load_config", make_config)
 
-    params = sign_graph_params("macro", "plexweb", "day", SECRET, ttl_seconds=60, offset=3600)
+    sign_time = 1_000_000_000
+    event_timet = sign_time - 3600
+    params = sign_graph_params(
+        "macro", "plexweb", "day", SECRET, ttl_seconds=60, timet=event_timet
+    )
+
+    captured_params = {}
+
+    class FakeAsyncClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def get(self, url, params=None, auth=None):
+            captured_params.update(params or {})
+            return _FakeResponse(REAL_PNG_BYTES)
+
+    monkeypatch.setattr(httpx, "AsyncClient", FakeAsyncClient)
+
+    # Fetch happens 6 hours after the URL was signed — a stand-in for Slack
+    # re-fetching a stale message image well after the alert fired.
+    fetch_time = sign_time + 6 * 3600
+    monkeypatch.setattr("nagios_public_status_page.api.routes.time.time", lambda: fetch_time)
+
+    response = client.get("/api/graph", params=params)
+
+    assert response.status_code == 200
+    # offset is relative to fetch_time, not sign_time, so the window stays
+    # anchored to event_timet regardless of when the request lands.
+    assert captured_params["offset"] == fetch_time - event_timet
+
+
+def test_graph_timet_zero_is_live(client, monkeypatch):
+    monkeypatch.setattr("nagios_public_status_page.config.load_config", make_config)
+
+    params = sign_graph_params("macro", "plexweb", "day", SECRET, ttl_seconds=60, timet=0)
 
     captured_params = {}
 
@@ -141,14 +185,14 @@ def test_graph_forwards_offset_to_upstream(client, monkeypatch):
     response = client.get("/api/graph", params=params)
 
     assert response.status_code == 200
-    assert captured_params["offset"] == 3600
+    assert captured_params["offset"] == 0
 
 
-def test_graph_returns_400_when_offset_is_tampered(client, monkeypatch):
+def test_graph_returns_400_when_timet_is_tampered(client, monkeypatch):
     monkeypatch.setattr("nagios_public_status_page.config.load_config", make_config)
 
-    params = sign_graph_params("macro", "plexweb", "day", SECRET, ttl_seconds=60, offset=3600)
-    params["offset"] = "0"
+    params = sign_graph_params("macro", "plexweb", "day", SECRET, ttl_seconds=60, timet=3600)
+    params["timet"] = "0"
 
     response = client.get("/api/graph", params=params)
 
