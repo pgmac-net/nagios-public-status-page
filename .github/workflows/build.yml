@@ -24,25 +24,24 @@ jobs:
         with:
           python-version: 3.13
       - run: uv sync
+      # Run ruff from the locked dev dependency group rather than
+      # astral-sh/ruff-action, which resolves the pyproject constraint to the
+      # newest release and so silently changes ruff version between runs (#55).
       - name: Run Ruff
         id: ruff
-        uses: astral-sh/ruff-action@v4.1.0 # Use the official action
         continue-on-error: true
-        with:
-          # Optional: specify arguments (default is 'check')
-          args: "check --output-format=github"
-          # Optional: specify source directory (default is '.')
-          src: "src/"
+        run: uv run ruff check --output-format=github src/
 
       - name: Comment PR with lint results
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v9
         with:
           script: |
+            const passed = '${{ steps.ruff.outcome }}' === 'success';
             const body = `## 🔍 Lint Results
 
             ### Summary
-            - ✅ Ruff linting passed
+            - ${passed ? '✅ Ruff linting passed' : '❌ Ruff linting failed — see the annotations on this run'}
 
             ---
             **Linting must pass before the Docker image can be built.**`;

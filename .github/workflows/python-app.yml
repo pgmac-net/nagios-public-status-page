@@ -24,13 +24,11 @@ jobs:
 
       - run: uv sync
 
+      # Run ruff from the locked dev dependency group rather than
+      # astral-sh/ruff-action, which resolves the pyproject constraint to the
+      # newest release and so silently changes ruff version between runs (#55).
       - name: Run Ruff
-        uses: astral-sh/ruff-action@v4.1.0 # Use the official action
-        with:
-          # Optional: specify arguments (default is 'check')
-          args: "check --output-format=github"
-          # Optional: specify source directory (default is '.')
-          src: "src/"
+        run: uv run ruff check --output-format=github src/
 
       - name: Test with pytest
         id: pytest

@@ -118,21 +118,21 @@ class StatusPoller:
             if results.get("errors") and current_failures >= self._max_consecutive_failures:
                 self._attempt_recovery()
 
-        except Exception as exc:  # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except
             # Unhandled exception in poll - this is critical
             with self._state_lock:
                 self._consecutive_failures += 1
                 current_failures = self._consecutive_failures
                 logger.exception(
-                    "Critical error in poll (%d/%d consecutive failures): %s",
+                    "Critical error in poll (%d/%d consecutive failures)",
                     current_failures,
                     self._max_consecutive_failures,
-                    exc
                 )
 
             # If we've had too many failures, attempt recovery (outside lock)
             if current_failures >= self._max_consecutive_failures:
-                logger.error(
+                # The traceback was already logged above; don't repeat it here.
+                logger.warning(
                     "Maximum consecutive failures (%d) reached after exception, attempting recovery",
                     self._max_consecutive_failures
                 )
@@ -200,8 +200,8 @@ class StatusPoller:
                 recovery_attempt
             )
 
-        except Exception as exc:
-            logger.exception("Failed to recover scheduler: %s", exc)
+        except Exception:
+            logger.exception("Failed to recover scheduler")
             # Reset failure counter after failed recovery to avoid continuous recovery attempts
             self._consecutive_failures = 0
     def poll(self) -> PollResults:
@@ -229,12 +229,12 @@ class StatusPoller:
                 self.parser.parse()
             except FileNotFoundError as exc:
                 error_msg = f"status.dat file not found: {exc}"
-                logger.error(error_msg)
+                logger.exception(error_msg)
                 results["errors"].append(error_msg)
                 return results
             except PermissionError as exc:
                 error_msg = f"Permission denied reading status.dat: {exc}"
-                logger.error(error_msg)
+                logger.exception(error_msg)
                 results["errors"].append(error_msg)
                 return results
 

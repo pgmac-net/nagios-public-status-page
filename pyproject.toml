@@ -60,5 +60,52 @@ dev = [
     "pytest>=9.0.2",
     "pytest-asyncio>=1.3.0",
     "pytest-cov>=6.0.0",
-    "ruff>=0.14.11",
+    "ruff>=0.16.0",
+]
+
+[tool.ruff]
+target-version = "py313"
+
+# Rules are selected explicitly so a new ruff release cannot change what CI
+# enforces by turning additional rules on by default.
+[tool.ruff.lint]
+select = [
+    "E4", "E7", "E9",  # pycodestyle errors (ruff's default subset)
+    "F",               # pyflakes
+    "I",               # isort
+    "UP",              # pyupgrade
+    "B",               # flake8-bugbear
+    "SIM",             # flake8-simplify
+    "RUF",             # ruff-specific
+    "DTZ",             # flake8-datetimez
+    "TRY",             # tryceratops
+    "BLE",             # blind except
+]
+
+ignore = [
+    # Requires a custom exception class per message; not worth it for an app
+    # this size, where the message at the raise site is the useful documentation.
+    "TRY003",
+    # FastAPI routes raise HTTPException inside try blocks by design.
+    "TRY301",
+    # Conflicts with pylint's no-else-raise (R1720) on try/except/else.
+    "TRY300",
+    # The app stores and compares naive datetimes end to end, including the
+    # SQLAlchemy DateTime columns in models.py. Making these tz-aware is a
+    # behaviour change against existing database rows, tracked separately in #56.
+    "DTZ005",
+    "DTZ006",
+]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's documented idiom is a call in the parameter default.
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Query",
+    "fastapi.Path",
+    "fastapi.Header",
+    "fastapi.Cookie",
+    "fastapi.Body",
+    "fastapi.Form",
+    "fastapi.File",
 ]
