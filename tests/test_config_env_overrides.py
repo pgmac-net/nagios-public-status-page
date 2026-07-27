@@ -5,7 +5,9 @@ them must be read by load_config(), or a deployment silently runs on the
 config.yaml defaults while appearing to be configured.
 """
 
+import os
 import re
+import subprocess
 import tempfile
 from pathlib import Path
 
@@ -131,3 +133,76 @@ def test_unset_variables_leave_config_values_intact(config_file, monkeypatch):
 
     assert config.rss.title == "System Status"
     assert config.rss.link == "https://status.example.com"
+
+
+def test_config_file_is_optional(monkeypatch):
+    """The application runs with no config.yaml, on env vars plus defaults."""
+    monkeypatch.setenv("NAGIOS_STATUS_DAT_PATH", "/nagios/var/status.dat")
+    monkeypatch.setenv("RSS_LINK", "https://env-only.example.com")
+
+    config = load_config("/nonexistent/config.yaml")
+
+    assert config.nagios.status_dat_path == "/nagios/var/status.dat"
+    assert config.rss.link == "https://env-only.example.com"
+    # Everything not supplied falls back to the model defaults.
+    assert config.polling.interval_seconds == 300
+    assert config.incidents.retention_days == 30
+
+
+def test_empty_config_file_is_treated_as_no_config(monkeypatch):
+    """A YAML file containing nothing parses to None, not a crash."""
+    monkeypatch.setenv("NAGIOS_STATUS_DAT_PATH", "/nagios/var/status.dat")
+
+    with tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False) as handle:
+        handle.write("")
+        path = handle.name
+
+    try:
+        assert load_config(path).polling.interval_seconds == 300
+    finally:
+        Path(path).unlink(missing_ok=True)
+
+
+def test_every_setting_has_a_default(monkeypatch):
+    """No field may be required, or the config file would not truly be optional.
+
+    main.py calls load_config() at import time, so a required field without an
+    environment value breaks the application -- and the test suite -- whenever
+    config.yaml is absent.
+    """
+    for name in list(os.environ):
+        if name.split("_")[0] in {"NAGIOS", "POLL", "STALENESS", "DATABASE", "API", "GRAPH", "RSS", "INCIDENTS", "COMMENTS"}:
+            monkeypatch.delenv(name, raising=False)
+
+    config = load_config("/nonexistent/config.yaml")
+
+    assert config.nagios.status_dat_path == "/usr/local/nagios/var/status.dat"
+
+
+def test_incidents_and_comments_overrides(config_file, monkeypatch):
+    """The two fields that previously had no environment override now have one."""
+    monkeypatch.setenv("INCIDENTS_RETENTION_DAYS", "7")
+    monkeypatch.setenv("COMMENTS_PULL_NAGIOS_COMMENTS", "false")
+
+    config = load_config(config_file)
+
+    assert config.incidents.retention_days == 7
+    assert config.comments.pull_nagios_comments is False
+
+
+def test_config_yaml_is_not_tracked():
+    """config.yaml holds per-deployment values and credentials; keep it untracked.
+
+    Only config.yaml.example belongs in the repository.
+    """
+    tracked = subprocess.run(
+        ["git", "ls-files", "--error-unmatch", "config.yaml"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        check=False,
+    )
+
+    assert tracked.returncode != 0, (
+        "config.yaml is tracked in git. It holds deployment hosts and "
+        "credentials; commit config.yaml.example instead."
+    )

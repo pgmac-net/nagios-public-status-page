@@ -18,7 +18,10 @@ class ServiceSpec(BaseModel):
 class NagiosConfig(BaseModel):
     """Nagios-related configuration."""
 
-    status_dat_path: str = Field(..., description="Path to Nagios status.dat file")
+    status_dat_path: str = Field(
+        default="/usr/local/nagios/var/status.dat",
+        description="Path to Nagios status.dat file",
+    )
     hostgroups: list[str] = Field(
         default_factory=list, description="Hostgroups to monitor"
     )
@@ -111,7 +114,7 @@ class CommentsConfig(BaseModel):
 class Config(BaseModel):
     """Main application configuration."""
 
-    nagios: NagiosConfig
+    nagios: NagiosConfig = Field(default_factory=NagiosConfig)
     polling: PollingConfig = Field(default_factory=PollingConfig)
     database: DatabaseConfig = Field(default_factory=DatabaseConfig)
     api: APIConfig = Field(default_factory=APIConfig)
@@ -127,6 +130,12 @@ def load_config(config_path: str | Path = "config.yaml") -> Config:
     Environment variables take precedence over config file values.
     Use uppercase with underscores, e.g., NAGIOS_STATUS_DAT_PATH.
 
+    The YAML file is optional. When absent, configuration comes entirely from
+    environment variables and the defaults declared on the models above, which
+    lets a container run from .env alone. The file remains the right place for
+    structured settings -- notably ``nagios.services``, whose environment
+    equivalent cannot represent a service description containing a comma.
+
     Args:
         config_path: Path to the YAML configuration file
 
@@ -134,17 +143,16 @@ def load_config(config_path: str | Path = "config.yaml") -> Config:
         Loaded configuration object
 
     Raises:
-        FileNotFoundError: If config file doesn't exist
-        ValueError: If configuration is invalid
+        ValidationError: If any supplied setting fails validation
     """
     config_path = Path(config_path)
+    config_data: dict[str, Any] = {}
 
-    if not config_path.exists():
-        raise FileNotFoundError(f"Configuration file not found: {config_path}")
-
-    # Load YAML configuration
-    with open(config_path, encoding="utf-8") as file:
-        config_data: dict[str, Any] = yaml.safe_load(file)
+    if config_path.exists():
+        with open(config_path, encoding="utf-8") as file:
+            # An empty file parses to None, which is a valid way to say
+            # "configure everything from the environment".
+            config_data = yaml.safe_load(file) or {}
 
     # Override with environment variables if present
     if status_dat_path := os.getenv("NAGIOS_STATUS_DAT_PATH"):
@@ -231,6 +239,15 @@ def load_config(config_path: str | Path = "config.yaml") -> Config:
         config_data.setdefault("api", {})["cors_origins"] = [
             origin.strip() for origin in cors_origins.split(",")
         ]
+
+    # Add the remaining env overrides for fields that previously had none
+    if retention_days := os.getenv("INCIDENTS_RETENTION_DAYS"):
+        config_data.setdefault("incidents", {})["retention_days"] = int(retention_days)
+
+    if pull_comments := os.getenv("COMMENTS_PULL_NAGIOS_COMMENTS"):
+        config_data.setdefault("comments", {})["pull_nagios_comments"] = (
+            pull_comments.strip().lower() in {"1", "true", "yes", "on"}
+        )
 
     # Validate and create config object
     return Config(**config_data)
