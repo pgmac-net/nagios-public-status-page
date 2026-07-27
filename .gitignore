@@ -54,6 +54,9 @@ data/
 
 # Configuration
 .env
+
+# Per-host compose overrides
+docker-compose.override.yml
 config.local.yaml
 
 # Logs
