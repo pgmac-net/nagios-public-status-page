@@ -221,5 +221,16 @@ def load_config(config_path: str | Path = "config.yaml") -> Config:
     if rss_link := os.getenv("RSS_LINK"):
         config_data.setdefault("rss", {})["link"] = rss_link
 
+    if rss_description := os.getenv("RSS_DESCRIPTION"):
+        config_data.setdefault("rss", {})["description"] = rss_description
+
+    if rss_max_items := os.getenv("RSS_MAX_ITEMS"):
+        config_data.setdefault("rss", {})["max_items"] = int(rss_max_items)
+
+    if cors_origins := os.getenv("API_CORS_ORIGINS"):
+        config_data.setdefault("api", {})["cors_origins"] = [
+            origin.strip() for origin in cors_origins.split(",")
+        ]
+
     # Validate and create config object
     return Config(**config_data)

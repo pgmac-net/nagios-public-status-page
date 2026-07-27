@@ -51,35 +51,53 @@ Open your browser to `http://localhost:8000`
 
 Override configuration settings using environment variables:
 
-```bash
-# Timezone -- see docs/UTC_TIMESTAMPS.md
-# All timestamps are stored and served as UTC. The application does not depend
-# on this variable, but keep it UTC so container logs match the stored data.
-TZ=UTC
+Do not edit `docker-compose.yml` to configure a deployment -- it is tracked in
+git, so local edits become a permanent diff to re-resolve on every pull. It reads
+these values from a `.env` file beside it instead:
 
+```bash
+cp .env.example .env
+$EDITOR .env
+docker compose up -d
+```
+
+Anything left unset falls back to the default baked into `docker-compose.yml`.
+
+```bash
 # Nagios configuration
-NAGIOS_STATUS_DAT_PATH=/nagios/status.dat
+# NAGIOS_STATUS_DAT_PATH is fixed by the volume mount and is not overridable.
 NAGIOS_HOSTGROUPS=public-status,web-servers
 NAGIOS_SERVICEGROUPS=public-status-services
 
 # Polling configuration
-POLLING_INTERVAL_SECONDS=300
-POLLING_STALENESS_THRESHOLD_SECONDS=600
-
-# Database
-DATABASE_PATH=/app/data/status.db
+POLL_INTERVAL_SECONDS=300
+STALENESS_THRESHOLD_SECONDS=600
 
 # API configuration
-API_HOST=0.0.0.0
-API_PORT=8000
-API_CORS_ORIGINS=["*"]
+# Comma-separated, not a JSON array.
+API_CORS_ORIGINS=*
+API_BASIC_AUTH_USERNAME=statuspage
+API_BASIC_AUTH_PASSWORD=
+
+# Signed nagiosgraph proxy. GRAPH_SIGNING_SECRET is a secret; keep it here,
+# never in docker-compose.yml.
+GRAPH_NAGIOSGRAPH_URL=http://nagios.int.example.com/cgi-bin
+GRAPH_SIGNING_SECRET=
+GRAPH_DEFAULT_TTL_SECONDS=604800
 
 # RSS configuration
 RSS_TITLE=System Status
 RSS_LINK=https://status.example.com
-RSS_DESCRIPTION=Live system status updates
+RSS_DESCRIPTION=Public status updates
 RSS_MAX_ITEMS=50
 ```
+
+`TZ=UTC` is set directly in `docker-compose.yml` and is deliberately not
+overridable -- see [UTC_TIMESTAMPS.md](docs/UTC_TIMESTAMPS.md).
+
+For settings that vary per host beyond these variables, create a
+`docker-compose.override.yml`. Compose merges it automatically and it is
+gitignored.
 
 ---
 
