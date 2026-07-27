@@ -1,3 +1,14 @@
+# Copy this file to config.yaml and edit it. config.yaml is gitignored, so your
+# monitored hosts, groups and credentials stay out of the repository.
+#
+# Every scalar below can also be set from .env -- see .env.example. Prefer .env
+# for deployment-specific values and all secrets. This file is the right place
+# for structured settings, notably nagios.services, whose environment-variable
+# form cannot represent a service description containing a comma.
+#
+# The file is optional. With it absent, the application runs on the defaults
+# shown here plus whatever .env supplies.
+
 nagios:
   status_dat_path: "/nagios/var/status.dat"
 
@@ -34,12 +45,12 @@ api:
   cors_origins:
     - "*"
 
-  # Basic Auth for write operations (comments, PIR updates, manual polls)
-  # Leave both unset to disable authentication
-  # Can also be set via environment variables:
-  #   API_BASIC_AUTH_USERNAME and API_BASIC_AUTH_PASSWORD
-  basic_auth_username: null  # Set to enable auth (e.g., "admin")
-  basic_auth_password: null  # Set to enable auth (e.g., "secure-password")
+  # Basic Auth for write operations (comments, PIR updates, manual polls).
+  # Leave both unset to disable authentication.
+  # SECRET: set these in .env as API_BASIC_AUTH_USERNAME and
+  # API_BASIC_AUTH_PASSWORD rather than here.
+  basic_auth_username: null
+  basic_auth_password: null
 
 # Signed nagiosgraph proxy, used by /api/graph. Lets external services
 # (e.g. Slack notifications) render a graph image without reaching the
@@ -47,8 +58,10 @@ api:
 # Can also be set via environment variables:
 #   GRAPH_NAGIOSGRAPH_URL, GRAPH_SIGNING_SECRET, GRAPH_DEFAULT_TTL_SECONDS,
 #   GRAPH_BASIC_AUTH_USERNAME, GRAPH_BASIC_AUTH_PASSWORD
+# SECRET: signing_secret and the basic auth values belong in .env as
+# GRAPH_SIGNING_SECRET, GRAPH_BASIC_AUTH_USERNAME and GRAPH_BASIC_AUTH_PASSWORD.
 graph:
-  nagiosgraph_url: null  # e.g. "http://nagios.int.pgmac.net/cgi-bin"
+  nagiosgraph_url: null  # e.g. "http://nagios.int.example.com/cgi-bin"
   signing_secret: null  # Set to enable the /api/graph endpoint
   default_ttl_seconds: 604800  # 7 days
   basic_auth_username: null

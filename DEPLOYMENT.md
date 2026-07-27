@@ -99,6 +99,47 @@ For settings that vary per host beyond these variables, create a
 `docker-compose.override.yml`. Compose merges it automatically and it is
 gitignored.
 
+### config.yaml vs .env
+
+Both are gitignored, and each has a job:
+
+| | Use for |
+|---|---|
+| `.env` | Deployment-specific scalars and **all secrets**: `RSS_LINK`, `GRAPH_SIGNING_SECRET`, basic auth credentials |
+| `config.yaml` | Structured settings: `nagios.hosts`, `nagios.services`, hostgroups and servicegroups |
+
+`nagios.services` in particular belongs in YAML. Its environment equivalent is a
+`host:service` comma-separated string, so a service description containing a
+comma is silently truncated and the service then never matches:
+
+```
+NAGIOS_SERVICES="macro:Disk Space, /var"   ->   service_description: "Disk Space"
+```
+
+`config.yaml` is optional. Without it the application runs on the defaults
+bundled into the image plus whatever `.env` supplies. The compose file does bind
+mount it, so run `cp config.yaml.example config.yaml` before the first
+`docker compose up`, or remove that mount.
+
+Never put credentials in `config.yaml.example` -- it is tracked in git.
+
+### Upgrading an existing deployment
+
+`config.yaml` used to be tracked. If your deployment predates that change, its
+copy has local modifications and `git pull` will refuse to remove the file:
+
+```bash
+cp config.yaml ~/config.yaml.bak
+git checkout -- config.yaml   # discard local edits so the pull can proceed
+git pull
+cp ~/config.yaml.bak config.yaml   # now untracked, safe to keep edited
+```
+
+Then move any credentials out of `config.yaml` and into `.env`:
+`API_BASIC_AUTH_USERNAME`, `API_BASIC_AUTH_PASSWORD`,
+`GRAPH_BASIC_AUTH_USERNAME`, `GRAPH_BASIC_AUTH_PASSWORD` and
+`GRAPH_SIGNING_SECRET` all have environment overrides.
+
 ---
 
 ## Docker Compose Deployment

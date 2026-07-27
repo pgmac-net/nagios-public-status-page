@@ -500,7 +500,7 @@ public-status-page/
           config.py        # Configuration
    tests/                   # Test suite
    static/                  # Frontend files
-   config.yaml              # Configuration
+   config.yaml.example      # Configuration template; copy to config.yaml
    pyproject.toml           # Dependencies
 ```
 
