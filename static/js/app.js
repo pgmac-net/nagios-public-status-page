@@ -826,6 +826,12 @@ async function submitPirUrl(event, incidentId) {
 function parseUTCDate(dateString) {
     // Backend returns naive datetime strings without timezone
     // Treat them as UTC by appending 'Z' if not present
+    //
+    // This is a guaranteed contract, not an assumption: the API stores and
+    // serves every timestamp as UTC, deliberately serialised without an offset.
+    // See docs/UTC_TIMESTAMPS.md. If the API ever starts emitting offsets, the
+    // check below would produce '...+00:00Z' and yield Invalid Date, so the two
+    // must change together.
     if (dateString && !dateString.endsWith('Z') && dateString.includes('T')) {
         return new Date(dateString + 'Z');
     }

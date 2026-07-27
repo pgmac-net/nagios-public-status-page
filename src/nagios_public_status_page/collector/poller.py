@@ -2,7 +2,7 @@
 
 import logging
 import threading
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any, TypedDict
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -156,7 +156,9 @@ class StatusPoller:
         with self._state_lock:
             # Guard against rapid recovery attempts
             if self._last_recovery_time:
-                time_since_last_recovery = (datetime.now() - self._last_recovery_time).total_seconds()
+                time_since_last_recovery = (
+                    datetime.now(UTC) - self._last_recovery_time
+                ).total_seconds()
                 if time_since_last_recovery < MIN_RECOVERY_INTERVAL_SECONDS:
                     logger.warning(
                         "Skipping recovery attempt - only %.1f seconds since last recovery "
@@ -167,7 +169,7 @@ class StatusPoller:
                     return
 
             self._recovery_attempts += 1
-            self._last_recovery_time = datetime.now()
+            self._last_recovery_time = datetime.now(UTC)
             recovery_attempt = self._recovery_attempts
 
         try:
@@ -213,7 +215,7 @@ class StatusPoller:
         logger.info("Starting status.dat poll")
         session = self._get_session()
         results: PollResults = {
-            "timestamp": datetime.now(),
+            "timestamp": datetime.now(UTC),
             "hosts_processed": 0,
             "services_processed": 0,
             "incidents_created": 0,
@@ -261,7 +263,7 @@ class StatusPoller:
                 if incident:
                     if incident.ended_at:
                         results["incidents_closed"] += 1
-                    elif incident.id and incident.started_at < datetime.now():
+                    elif incident.id and incident.started_at < datetime.now(UTC):
                         results["incidents_updated"] += 1
                     else:
                         results["incidents_created"] += 1
@@ -289,7 +291,7 @@ class StatusPoller:
                 if incident:
                     if incident.ended_at:
                         results["incidents_closed"] += 1
-                    elif incident.id and incident.started_at < datetime.now():
+                    elif incident.id and incident.started_at < datetime.now(UTC):
                         results["incidents_updated"] += 1
                     else:
                         results["incidents_created"] += 1
@@ -333,8 +335,8 @@ class StatusPoller:
 
             # Record poll metadata
             metadata = PollMetadata(
-                last_poll_time=datetime.now(),
-                status_dat_mtime=self.parser.file_mtime or datetime.now(),
+                last_poll_time=datetime.now(UTC),
+                status_dat_mtime=self.parser.file_mtime or datetime.now(UTC),
                 records_processed=results["hosts_processed"] + results["services_processed"],
             )
             session.add(metadata)
@@ -428,7 +430,7 @@ class StatusPoller:
         if not last_poll:
             return True
 
-        age = (datetime.now() - last_poll.last_poll_time).total_seconds()
+        age = (datetime.now(UTC) - last_poll.last_poll_time).total_seconds()
         return age > self.config.polling.staleness_threshold_seconds
 
     def get_scheduler_status(self) -> dict[str, Any]:

@@ -1,8 +1,20 @@
 """Pydantic schemas for API requests and responses."""
 
 from datetime import datetime
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, PlainSerializer
+
+# Timestamps are timezone-aware UTC internally but serialise without an offset,
+# preserving the established API contract: clients receive naive strings and
+# interpret them as UTC. static/js/app.js relies on this when it appends 'Z'.
+# See docs/UTC_TIMESTAMPS.md.
+UTCTimestamp = Annotated[
+    datetime,
+    PlainSerializer(
+        lambda value: value.replace(tzinfo=None).isoformat(), return_type=str
+    ),
+]
 
 
 class IncidentResponse(BaseModel):
@@ -41,12 +53,12 @@ class IncidentResponse(BaseModel):
     state: str = Field(
         description="Current state: UP/DOWN/UNREACHABLE for hosts, OK/WARNING/CRITICAL/UNKNOWN for services"
     )
-    started_at: datetime = Field(description="When the incident started")
-    ended_at: datetime | None = Field(
+    started_at: UTCTimestamp = Field(description="When the incident started")
+    ended_at: UTCTimestamp | None = Field(
         default=None,
         description="When the incident ended (null if still active)"
     )
-    last_check: datetime | None = Field(
+    last_check: UTCTimestamp | None = Field(
         default=None,
         description="Last time this was checked by Nagios"
     )
@@ -85,7 +97,7 @@ class CommentResponse(BaseModel):
     incident_id: int = Field(description="ID of the incident this comment belongs to")
     author: str = Field(description="Name of the comment author")
     comment_text: str = Field(description="The comment content")
-    created_at: datetime = Field(description="When the comment was created")
+    created_at: UTCTimestamp = Field(description="When the comment was created")
 
 
 class CommentCreate(BaseModel):
@@ -127,7 +139,7 @@ class NagiosCommentResponse(BaseModel):
 
     id: int
     incident_id: int | None
-    entry_time: datetime
+    entry_time: UTCTimestamp
     author: str
     comment_data: str
     host_name: str
@@ -146,7 +158,7 @@ class HostStatusResponse(BaseModel):
     current_state: int
     state_name: str
     plugin_output: str | None
-    last_check: datetime | None
+    last_check: UTCTimestamp | None
     is_problem: bool
 
 
@@ -158,7 +170,7 @@ class ServiceStatusResponse(BaseModel):
     current_state: int
     state_name: str
     plugin_output: str | None
-    last_check: datetime | None
+    last_check: UTCTimestamp | None
     is_problem: bool
 
 
@@ -197,7 +209,7 @@ class StatusSummary(BaseModel):
     services_critical: int = Field(description="Number of services in CRITICAL state")
     services_unknown: int = Field(description="Number of services in UNKNOWN state")
     active_incidents: int = Field(description="Number of currently active incidents")
-    last_poll: datetime | None = Field(
+    last_poll: UTCTimestamp | None = Field(
         default=None,
         description="Timestamp of last successful poll"
     )
@@ -273,7 +285,7 @@ class HealthResponse(BaseModel):
     status: str = Field(
         description="Overall health status: 'healthy', 'degraded', or 'stale'"
     )
-    last_poll_time: datetime | None = Field(
+    last_poll_time: UTCTimestamp | None = Field(
         default=None,
         description="When the last poll was completed"
     )
@@ -296,8 +308,8 @@ class PollMetadataResponse(BaseModel):
     """Schema for poll metadata response."""
 
     id: int
-    last_poll_time: datetime
-    status_dat_mtime: datetime
+    last_poll_time: UTCTimestamp
+    status_dat_mtime: UTCTimestamp
     records_processed: int | None
 
     class Config:

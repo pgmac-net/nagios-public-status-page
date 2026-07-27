@@ -1,6 +1,6 @@
 """Tests for the incident tracker."""
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from sqlalchemy import create_engine
@@ -32,7 +32,7 @@ def test_process_host_creates_incident_for_down_host(tracker, db_session):
     host_data = {
         "host_name": "webserver01",
         "current_state": 1,  # DOWN
-        "last_check": datetime.now().timestamp(),
+        "last_check": datetime.now(UTC).timestamp(),
         "plugin_output": "Host is down",
     }
 
@@ -52,7 +52,7 @@ def test_process_host_updates_existing_incident(tracker, db_session):
     host_data = {
         "host_name": "webserver01",
         "current_state": 1,  # DOWN
-        "last_check": datetime.now().timestamp(),
+        "last_check": datetime.now(UTC).timestamp(),
         "plugin_output": "Host is down",
     }
     incident1 = tracker.process_host(host_data)
@@ -73,7 +73,7 @@ def test_process_host_closes_incident_when_recovered(tracker, db_session):
     host_data = {
         "host_name": "webserver01",
         "current_state": 1,  # DOWN
-        "last_check": datetime.now().timestamp(),
+        "last_check": datetime.now(UTC).timestamp(),
         "plugin_output": "Host is down",
     }
     incident = tracker.process_host(host_data)
@@ -95,7 +95,7 @@ def test_process_service_creates_incident_for_critical_service(tracker, db_sessi
         "host_name": "webserver01",
         "service_description": "HTTP",
         "current_state": 2,  # CRITICAL
-        "last_check": datetime.now().timestamp(),
+        "last_check": datetime.now(UTC).timestamp(),
         "plugin_output": "Connection refused",
     }
 
@@ -115,7 +115,7 @@ def test_process_service_creates_incident_for_warning(tracker, db_session):
         "host_name": "webserver01",
         "service_description": "HTTPS",
         "current_state": 1,  # WARNING
-        "last_check": datetime.now().timestamp(),
+        "last_check": datetime.now(UTC).timestamp(),
         "plugin_output": "Certificate expiring soon",
     }
 
@@ -132,7 +132,7 @@ def test_process_service_doesnt_create_incident_for_ok(tracker, db_session):
         "host_name": "webserver01",
         "service_description": "HTTP",
         "current_state": 0,  # OK
-        "last_check": datetime.now().timestamp(),
+        "last_check": datetime.now(UTC).timestamp(),
         "plugin_output": "HTTP OK",
     }
 
@@ -147,7 +147,7 @@ def test_get_active_incidents(tracker, db_session):
         host_data = {
             "host_name": f"server{i}",
             "current_state": 1,
-            "last_check": datetime.now().timestamp(),
+            "last_check": datetime.now(UTC).timestamp(),
             "plugin_output": "Down",
         }
         tracker.process_host(host_data)
@@ -156,7 +156,7 @@ def test_get_active_incidents(tracker, db_session):
     host_data = {
         "host_name": "server1",
         "current_state": 0,
-        "last_check": datetime.now().timestamp(),
+        "last_check": datetime.now(UTC).timestamp(),
         "plugin_output": "Up",
     }
     tracker.process_host(host_data)
@@ -173,9 +173,9 @@ def test_get_recent_incidents(tracker, db_session):
         incident_type="host",
         host_name="oldserver",
         state="DOWN",
-        started_at=datetime.now() - timedelta(hours=48),
-        ended_at=datetime.now() - timedelta(hours=47),
-        last_check=datetime.now() - timedelta(hours=47),
+        started_at=datetime.now(UTC) - timedelta(hours=48),
+        ended_at=datetime.now(UTC) - timedelta(hours=47),
+        last_check=datetime.now(UTC) - timedelta(hours=47),
         plugin_output="Old problem",
     )
     db_session.add(old_incident)
@@ -184,7 +184,7 @@ def test_get_recent_incidents(tracker, db_session):
     host_data = {
         "host_name": "newserver",
         "current_state": 1,
-        "last_check": datetime.now().timestamp(),
+        "last_check": datetime.now(UTC).timestamp(),
         "plugin_output": "Recent problem",
     }
     tracker.process_host(host_data)
@@ -200,7 +200,7 @@ def test_process_nagios_comment(tracker, db_session):
     comment_data = {
         "host_name": "webserver01",
         "service_description": None,
-        "entry_time": datetime.now().timestamp(),
+        "entry_time": datetime.now(UTC).timestamp(),
         "author": "admin",
         "comment_data": "Working on issue",
     }
@@ -216,7 +216,7 @@ def test_process_nagios_comment(tracker, db_session):
 def test_link_comment_to_incident(tracker, db_session):
     """Test linking comments to incidents."""
     # Create incident
-    now = datetime.now()
+    now = datetime.now(UTC)
     incident = Incident(
         incident_type="host",
         host_name="webserver01",
@@ -251,9 +251,9 @@ def test_cleanup_old_incidents(tracker, db_session):
         incident_type="host",
         host_name="oldserver",
         state="DOWN",
-        started_at=datetime.now() - timedelta(days=40),
-        ended_at=datetime.now() - timedelta(days=39),
-        last_check=datetime.now() - timedelta(days=39),
+        started_at=datetime.now(UTC) - timedelta(days=40),
+        ended_at=datetime.now(UTC) - timedelta(days=39),
+        last_check=datetime.now(UTC) - timedelta(days=39),
         plugin_output="Old problem",
     )
     db_session.add(old_incident)
@@ -263,9 +263,9 @@ def test_cleanup_old_incidents(tracker, db_session):
         incident_type="host",
         host_name="recentserver",
         state="DOWN",
-        started_at=datetime.now() - timedelta(days=2),
-        ended_at=datetime.now() - timedelta(days=1),
-        last_check=datetime.now() - timedelta(days=1),
+        started_at=datetime.now(UTC) - timedelta(days=2),
+        ended_at=datetime.now(UTC) - timedelta(days=1),
+        last_check=datetime.now(UTC) - timedelta(days=1),
         plugin_output="Recent problem",
     )
     db_session.add(recent_incident)

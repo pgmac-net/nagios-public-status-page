@@ -1,6 +1,6 @@
 """Tests for RSS feed generation."""
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from xml.etree import ElementTree
 
 import pytest
@@ -43,7 +43,7 @@ def feed_generator(rss_config):
 @pytest.fixture
 def sample_incidents(test_db):
     """Create sample incidents for testing."""
-    now = datetime.now()
+    now = datetime.now(UTC)
 
     # Active host incident
     host_incident = Incident(
@@ -234,7 +234,7 @@ def test_feed_entry_resolved_incident(feed_generator, test_db, sample_incidents)
 def test_feed_respects_max_items(test_db, rss_config):
     """Test that feed respects max_items configuration."""
     # Create many incidents
-    now = datetime.now()
+    now = datetime.now(UTC)
     for i in range(100):
         incident = Incident(
             incident_type="host",

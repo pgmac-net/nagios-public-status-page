@@ -2,8 +2,27 @@
 
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+from nagios_public_status_page.db.types import UTCDateTime
+
+
+def _naive_isoformat(value: datetime | None) -> str | None:
+    """Render a UTC timestamp without an offset.
+
+    Mirrors the JSON API contract, which serialises timestamps as naive strings
+    that consumers interpret as UTC. See docs/UTC_TIMESTAMPS.md.
+
+    Args:
+        value: An aware UTC datetime, or None
+
+    Returns:
+        ISO 8601 string with no offset, or None
+    """
+    if value is None:
+        return None
+    return value.replace(tzinfo=None).isoformat()
 
 
 class Base(DeclarativeBase):
@@ -20,9 +39,9 @@ class Incident(Base):
     host_name: Mapped[str] = mapped_column(String(255), index=True)
     service_description: Mapped[str | None] = mapped_column(String(255), nullable=True)
     state: Mapped[str] = mapped_column(String(20))
-    started_at: Mapped[datetime] = mapped_column(DateTime, index=True)
-    ended_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
-    last_check: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    started_at: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
+    ended_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True, index=True)
+    last_check: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     plugin_output: Mapped[str | None] = mapped_column(Text, nullable=True)
     post_incident_review_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     acknowledged: Mapped[int] = mapped_column(Integer, default=0)
@@ -50,9 +69,9 @@ class Incident(Base):
             "host_name": self.host_name,
             "service_description": self.service_description,
             "state": self.state,
-            "started_at": self.started_at.isoformat() if self.started_at else None,
-            "ended_at": self.ended_at.isoformat() if self.ended_at else None,
-            "last_check": self.last_check.isoformat() if self.last_check else None,
+            "started_at": _naive_isoformat(self.started_at),
+            "ended_at": _naive_isoformat(self.ended_at),
+            "last_check": _naive_isoformat(self.last_check),
             "plugin_output": self.plugin_output,
             "post_incident_review_url": self.post_incident_review_url,
             "acknowledged": bool(self.acknowledged),
@@ -69,7 +88,9 @@ class Comment(Base):
     incident_id: Mapped[int] = mapped_column(Integer, ForeignKey("incidents.id"), index=True)
     author: Mapped[str] = mapped_column(String(255))
     comment_text: Mapped[str] = mapped_column(Text)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        UTCDateTime, default=lambda: datetime.now(UTC), index=True
+    )
 
     # Relationships
     incident: Mapped["Incident"] = relationship("Incident", back_populates="comments")
@@ -85,7 +106,7 @@ class Comment(Base):
             "incident_id": self.incident_id,
             "author": self.author,
             "comment_text": self.comment_text,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": _naive_isoformat(self.created_at),
         }
 
 
@@ -96,7 +117,7 @@ class NagiosComment(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     incident_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("incidents.id"), nullable=True, index=True)
-    entry_time: Mapped[datetime] = mapped_column(DateTime, index=True)
+    entry_time: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
     author: Mapped[str] = mapped_column(String(255))
     comment_data: Mapped[str] = mapped_column(Text)
     host_name: Mapped[str] = mapped_column(String(255), index=True)
@@ -114,7 +135,7 @@ class NagiosComment(Base):
         return {
             "id": self.id,
             "incident_id": self.incident_id,
-            "entry_time": self.entry_time.isoformat() if self.entry_time else None,
+            "entry_time": _naive_isoformat(self.entry_time),
             "author": self.author,
             "comment_data": self.comment_data,
             "host_name": self.host_name,
@@ -128,8 +149,8 @@ class PollMetadata(Base):
     __tablename__ = "poll_metadata"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    last_poll_time: Mapped[datetime] = mapped_column(DateTime, index=True)
-    status_dat_mtime: Mapped[datetime] = mapped_column(DateTime)
+    last_poll_time: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
+    status_dat_mtime: Mapped[datetime] = mapped_column(UTCDateTime)
     records_processed: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     def __repr__(self) -> str:
@@ -140,7 +161,7 @@ class PollMetadata(Base):
         """Convert poll metadata to dictionary."""
         return {
             "id": self.id,
-            "last_poll_time": self.last_poll_time.isoformat() if self.last_poll_time else None,
-            "status_dat_mtime": self.status_dat_mtime.isoformat() if self.status_dat_mtime else None,
+            "last_poll_time": _naive_isoformat(self.last_poll_time),
+            "status_dat_mtime": _naive_isoformat(self.status_dat_mtime),
             "records_processed": self.records_processed,
         }

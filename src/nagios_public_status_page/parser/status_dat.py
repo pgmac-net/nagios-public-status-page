@@ -1,7 +1,7 @@
 """Parser for Nagios status.dat files."""
 
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -34,7 +34,7 @@ class StatusDatParser:
 
         # Get file modification time
         stat_info = os.stat(self.status_dat_path)
-        self.file_mtime = datetime.fromtimestamp(stat_info.st_mtime)
+        self.file_mtime = datetime.fromtimestamp(stat_info.st_mtime, UTC)
 
         self.data = {}
         current_section = None
@@ -193,7 +193,7 @@ class StatusDatParser:
         if not self.file_mtime:
             return True
 
-        age = (datetime.now() - self.file_mtime).total_seconds()
+        age = (datetime.now(UTC) - self.file_mtime).total_seconds()
         return age > threshold_seconds
 
     def get_data_age_seconds(self) -> float | None:
@@ -205,4 +205,4 @@ class StatusDatParser:
         if not self.file_mtime:
             return None
 
-        return (datetime.now() - self.file_mtime).total_seconds()
+        return (datetime.now(UTC) - self.file_mtime).total_seconds()

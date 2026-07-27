@@ -1,7 +1,5 @@
 """RSS feed generation for incidents."""
 
-from datetime import UTC
-
 from feedgen.feed import FeedGenerator
 from sqlalchemy.orm import Session
 
@@ -63,18 +61,16 @@ class IncidentFeedGenerator:
         entry.id(entry_id)
         entry.link(href=entry_id)
 
-        # Set published date
-        # Convert to UTC aware datetime
-        pub_date = incident.started_at.replace(tzinfo=UTC)
-        entry.published(pub_date)
+        # Set published date. Incident timestamps are already timezone-aware UTC
+        # (see nagios_public_status_page.db.types.UTCDateTime), so feedgen can
+        # render the offset directly.
+        entry.published(incident.started_at)
 
         # Set updated date
         if incident.ended_at:
-            updated_date = incident.ended_at.replace(tzinfo=UTC)
-            entry.updated(updated_date)
+            entry.updated(incident.ended_at)
         else:
-            updated_date = (incident.last_check or incident.started_at).replace(tzinfo=UTC)
-            entry.updated(updated_date)
+            entry.updated(incident.last_check or incident.started_at)
 
         # Build description
         description_parts = []

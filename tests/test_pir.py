@@ -1,7 +1,7 @@
 """Tests for Post-Incident Review (PIR) functionality."""
 
 import tempfile
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -59,7 +59,7 @@ def client(db_engine):
 @pytest.fixture
 def sample_incident(db_session):
     """Create a sample incident for testing."""
-    now = datetime.now()
+    now = datetime.now(UTC)
     incident = Incident(
         incident_type="host",
         host_name="webserver01",
@@ -79,7 +79,7 @@ def sample_incident(db_session):
 
 def test_incident_model_has_pir_field(db_session):
     """Test that Incident model has post_incident_review_url field."""
-    now = datetime.now()
+    now = datetime.now(UTC)
     incident = Incident(
         incident_type="service",
         host_name="webserver01",
@@ -102,7 +102,7 @@ def test_incident_model_has_pir_field(db_session):
 
 def test_incident_to_dict_includes_pir_url(db_session):
     """Test that incident to_dict() includes PIR URL."""
-    now = datetime.now()
+    now = datetime.now(UTC)
     incident = Incident(
         incident_type="host",
         host_name="dbserver01",
@@ -126,7 +126,7 @@ def test_incident_to_dict_includes_pir_url(db_session):
 
 def test_incident_pir_url_nullable(db_session):
     """Test that PIR URL can be None."""
-    now = datetime.now()
+    now = datetime.now(UTC)
     incident = Incident(
         incident_type="service",
         host_name="appserver01",

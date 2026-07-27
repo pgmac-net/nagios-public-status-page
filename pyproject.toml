@@ -90,11 +90,6 @@ ignore = [
     "TRY301",
     # Conflicts with pylint's no-else-raise (R1720) on try/except/else.
     "TRY300",
-    # The app stores and compares naive datetimes end to end, including the
-    # SQLAlchemy DateTime columns in models.py. Making these tz-aware is a
-    # behaviour change against existing database rows, tracked separately in #56.
-    "DTZ005",
-    "DTZ006",
 ]
 
 [tool.ruff.lint.flake8-bugbear]
