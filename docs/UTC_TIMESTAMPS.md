@@ -1,5 +1,8 @@
 # UTC Timestamps
 
+This describes how timestamps work today. For why this design was chosen over
+the alternatives, see [ADR 0001](adr/0001-utc-timestamp-invariant.md).
+
 Every timestamp in this application is UTC. This document records what that
 means at each layer, and why the boundaries are drawn where they are.
 

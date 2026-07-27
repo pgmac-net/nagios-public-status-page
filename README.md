@@ -519,6 +519,7 @@ This project follows OpenSSF security best practices with automated scanning, de
 - **Repository security**: See [REPOSITORY_SECURITY.md](docs/REPOSITORY_SECURITY.md)
 - **Code scanning & coverage**: See [CODE_SCANNING_SETUP.md](docs/CODE_SCANNING_SETUP.md)
 - **Timestamp handling**: See [UTC_TIMESTAMPS.md](docs/UTC_TIMESTAMPS.md)
+- **Architecture decisions**: See [docs/adr/](docs/adr/README.md)
 
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/pgmac-net/nagios-public-status-page/badge)](https://scorecard.dev/viewer/?uri=github.com/pgmac-net/nagios-public-status-page)
 
