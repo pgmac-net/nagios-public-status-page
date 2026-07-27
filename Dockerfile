@@ -41,7 +41,11 @@ RUN uv sync --no-dev
 
 # Copy application files
 COPY --chown=statuspage:statuspage static/ ./static/
-COPY --chown=statuspage:statuspage config.yaml ./
+# Ship the example as the in-image default. A deployment overrides it by
+# bind-mounting its own config.yaml, or configures everything from the
+# environment. config.yaml itself is gitignored, so it must not be COPYed --
+# a clean clone does not have one and the build would fail.
+COPY --chown=statuspage:statuspage config.yaml.example ./config.yaml
 
 # Set environment variables
 # TZ is pinned so the container's wall clock matches the UTC storage invariant.

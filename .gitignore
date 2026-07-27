@@ -57,6 +57,9 @@ data/
 
 # Per-host compose overrides
 docker-compose.override.yml
+
+# Local deployment config; copy config.yaml.example to create it
+config.yaml
 config.local.yaml
 
 # Logs

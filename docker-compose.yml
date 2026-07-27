@@ -13,8 +13,16 @@ services:
       - /usr/local/nagios/var:/nagios/var:ro
       # Mount database directory for persistence
       - ./data:/app/data
-      # Mount config (optional - can use environment variables instead)
-      - ./config.yaml:/app/config.yaml:ro
+      # Local configuration. Run `cp config.yaml.example config.yaml` before
+      # first start. create_host_path is disabled deliberately: the default
+      # would silently create a *directory* here when the file is missing, and
+      # the application would then fail trying to parse it as YAML.
+      - type: bind
+        source: ./config.yaml
+        target: /app/config.yaml
+        read_only: true
+        bind:
+          create_host_path: false
     environment:
       # Values below are read from a .env file in this directory, falling back to
       # the defaults after ':-' when unset. Copy .env.example to .env and edit
