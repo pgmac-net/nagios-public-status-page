@@ -16,6 +16,8 @@ services:
       # Mount config (optional - can use environment variables instead)
       - ./config.yaml:/app/config.yaml:ro
     environment:
+      # Timestamps are stored and served as UTC; see docs/UTC_TIMESTAMPS.md
+      - TZ=UTC
       # Override config.yaml settings with environment variables
       - NAGIOS_STATUS_DAT_PATH=/nagios/var/status.dat
       - DATABASE_PATH=/app/data/status.db

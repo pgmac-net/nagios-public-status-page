@@ -1,6 +1,6 @@
 """Incident tracking and management service."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any, ClassVar
 
 from sqlalchemy.orm import Session
@@ -73,7 +73,7 @@ class IncidentTracker:
             return None
 
         # Convert timestamp to datetime
-        check_time = datetime.fromtimestamp(last_check) if last_check else datetime.now()
+        check_time = datetime.fromtimestamp(last_check, UTC) if last_check else datetime.now(UTC)
 
         # Check for existing active incident
         existing = (
@@ -142,7 +142,7 @@ class IncidentTracker:
             return None
 
         # Convert timestamp to datetime
-        check_time = datetime.fromtimestamp(last_check) if last_check else datetime.now()
+        check_time = datetime.fromtimestamp(last_check, UTC) if last_check else datetime.now(UTC)
 
         # Check for existing active incident
         existing = (
@@ -214,7 +214,7 @@ class IncidentTracker:
             return None
 
         # Convert timestamp to datetime
-        entry_datetime = datetime.fromtimestamp(entry_time)
+        entry_datetime = datetime.fromtimestamp(entry_time, UTC)
 
         # Check if comment already exists
         existing = (
@@ -281,8 +281,8 @@ class IncidentTracker:
         Returns:
             List of Incident objects
         """
-        cutoff = datetime.now().timestamp() - (hours * 3600)
-        cutoff_datetime = datetime.fromtimestamp(cutoff)
+        cutoff = datetime.now(UTC).timestamp() - (hours * 3600)
+        cutoff_datetime = datetime.fromtimestamp(cutoff, UTC)
 
         return (
             self.session.query(Incident)
@@ -300,8 +300,8 @@ class IncidentTracker:
         Returns:
             Number of incidents deleted
         """
-        cutoff = datetime.now().timestamp() - (days * 86400)
-        cutoff_datetime = datetime.fromtimestamp(cutoff)
+        cutoff = datetime.now(UTC).timestamp() - (days * 86400)
+        cutoff_datetime = datetime.fromtimestamp(cutoff, UTC)
 
         deleted = (
             self.session.query(Incident)

@@ -3,7 +3,7 @@
 import secrets
 import time
 from collections.abc import Generator
-from datetime import datetime
+from datetime import UTC, datetime
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -164,7 +164,7 @@ def health_check(db: Session = Depends(get_db)) -> HealthResponse:
         # Calculate status.dat age
         age_seconds = None
         if last_poll and last_poll.status_dat_mtime:
-            age_seconds = (datetime.now() - last_poll.status_dat_mtime).total_seconds()
+            age_seconds = (datetime.now(UTC) - last_poll.status_dat_mtime).total_seconds()
 
         status = "healthy"
         if is_stale:
@@ -366,7 +366,11 @@ def get_hosts(db: Session = Depends(get_db)) -> list[HostStatusResponse]:
                 current_state=h.get("current_state", 0),
                 state_name=state_names.get(h.get("current_state", 0), "UNKNOWN"),
                 plugin_output=h.get("plugin_output"),
-                last_check=datetime.fromtimestamp(h["last_check"]) if h.get("last_check") else None,
+                last_check=(
+                    datetime.fromtimestamp(h["last_check"], UTC)
+                    if h.get("last_check")
+                    else None
+                ),
                 is_problem=h.get("current_state", 0) in {1, 2},
             )
             for h in hosts
@@ -414,7 +418,11 @@ def get_services(db: Session = Depends(get_db)) -> list[ServiceStatusResponse]:
                 current_state=s.get("current_state", 0),
                 state_name=state_names.get(s.get("current_state", 0), "UNKNOWN"),
                 plugin_output=s.get("plugin_output"),
-                last_check=datetime.fromtimestamp(s["last_check"]) if s.get("last_check") else None,
+                last_check=(
+                    datetime.fromtimestamp(s["last_check"], UTC)
+                    if s.get("last_check")
+                    else None
+                ),
                 is_problem=s.get("current_state", 0) in {1, 2, 3},
             )
             for s in services
@@ -690,7 +698,7 @@ def add_comment(
             incident_id=incident_id,
             author=comment.author,
             comment_text=comment.comment_text,
-            created_at=datetime.now(),
+            created_at=datetime.now(UTC),
         )
         db.add(new_comment)
         db.commit()

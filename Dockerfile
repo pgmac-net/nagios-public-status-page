@@ -44,9 +44,13 @@ COPY --chown=statuspage:statuspage static/ ./static/
 COPY --chown=statuspage:statuspage config.yaml ./
 
 # Set environment variables
+# TZ is pinned so the container's wall clock matches the UTC storage invariant.
+# The application no longer depends on this (all timestamps are explicitly UTC),
+# but pinning it keeps logs and any shell in the container consistent.
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    TZ=UTC
 
 # Expose API port
 EXPOSE 8000

@@ -52,6 +52,11 @@ Open your browser to `http://localhost:8000`
 Override configuration settings using environment variables:
 
 ```bash
+# Timezone -- see docs/UTC_TIMESTAMPS.md
+# All timestamps are stored and served as UTC. The application does not depend
+# on this variable, but keep it UTC so container logs match the stored data.
+TZ=UTC
+
 # Nagios configuration
 NAGIOS_STATUS_DAT_PATH=/nagios/status.dat
 NAGIOS_HOSTGROUPS=public-status,web-servers
