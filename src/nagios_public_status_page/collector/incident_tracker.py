@@ -1,7 +1,7 @@
 """Incident tracking and management service."""
 
 from datetime import datetime
-from typing import Any
+from typing import Any, ClassVar
 
 from sqlalchemy.orm import Session
 
@@ -12,10 +12,10 @@ class IncidentTracker:
     """Track and manage host and service incidents."""
 
     # State mappings for hosts and services
-    HOST_PROBLEM_STATES = {1, 2}  # DOWN, UNREACHABLE
-    SERVICE_PROBLEM_STATES = {1, 2, 3}  # WARNING, CRITICAL, UNKNOWN
+    HOST_PROBLEM_STATES: ClassVar[set[int]] = {1, 2}  # DOWN, UNREACHABLE
+    SERVICE_PROBLEM_STATES: ClassVar[set[int]] = {1, 2, 3}  # WARNING, CRITICAL, UNKNOWN
 
-    STATE_NAMES = {
+    STATE_NAMES: ClassVar[dict[str, dict[int, str]]] = {
         "host": {0: "UP", 1: "DOWN", 2: "UNREACHABLE"},
         "service": {0: "OK", 1: "WARNING", 2: "CRITICAL", 3: "UNKNOWN"},
     }
@@ -253,10 +253,11 @@ class IncidentTracker:
             incident: Incident to link to
         """
         # Only link if comment was made during the incident
-        if incident.started_at <= comment.entry_time:
-            if incident.ended_at is None or comment.entry_time <= incident.ended_at:
-                comment.incident_id = incident.id
-                self.session.commit()
+        if incident.started_at <= comment.entry_time and (
+            incident.ended_at is None or comment.entry_time <= incident.ended_at
+        ):
+            comment.incident_id = incident.id
+            self.session.commit()
 
     def get_active_incidents(self) -> list[Incident]:
         """Get all active (unresolved) incidents.

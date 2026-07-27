@@ -1,6 +1,6 @@
 """RSS feed generation for incidents."""
 
-from datetime import timezone
+from datetime import UTC
 
 from feedgen.feed import FeedGenerator
 from sqlalchemy.orm import Session
@@ -65,15 +65,15 @@ class IncidentFeedGenerator:
 
         # Set published date
         # Convert to UTC aware datetime
-        pub_date = incident.started_at.replace(tzinfo=timezone.utc)
+        pub_date = incident.started_at.replace(tzinfo=UTC)
         entry.published(pub_date)
 
         # Set updated date
         if incident.ended_at:
-            updated_date = incident.ended_at.replace(tzinfo=timezone.utc)
+            updated_date = incident.ended_at.replace(tzinfo=UTC)
             entry.updated(updated_date)
         else:
-            updated_date = (incident.last_check or incident.started_at).replace(tzinfo=timezone.utc)
+            updated_date = (incident.last_check or incident.started_at).replace(tzinfo=UTC)
             entry.updated(updated_date)
 
         # Build description

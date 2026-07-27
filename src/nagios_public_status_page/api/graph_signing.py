@@ -27,9 +27,7 @@ class GraphRequest:
 
     def payload(self) -> bytes:
         """Canonical byte payload that gets HMAC-signed."""
-        return f"{self.host}|{self.service}|{self.period}|{self.timet}|{self.expires}".encode(
-            "utf-8"
-        )
+        return f"{self.host}|{self.service}|{self.period}|{self.timet}|{self.expires}".encode()
 
 
 def sign_graph_params(

@@ -1,8 +1,8 @@
 """Main FastAPI application for the public status page."""
 
 import logging
-from pathlib import Path
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,10 +27,10 @@ poller: StatusPoller | None = None
 try:
     config = load_config()
 except FileNotFoundError:
-    logger.error("Configuration file not found. Please create config.yaml")
+    logger.exception("Configuration file not found. Please create config.yaml")
     raise
-except Exception as exc:
-    logger.error("Failed to load configuration: %s", exc)
+except Exception:
+    logger.exception("Failed to load configuration")
     raise
 
 
@@ -45,8 +45,8 @@ async def lifespan(app: FastAPI):
         poller = StatusPoller(config)
         poller.start()
         logger.info("Background poller started successfully")
-    except Exception as exc:
-        logger.error("Failed to start background poller: %s", exc)
+    except Exception:
+        logger.exception("Failed to start background poller")
         raise
 
     yield  # Do application stuff
@@ -58,8 +58,8 @@ async def lifespan(app: FastAPI):
         try:
             poller.stop()
             logger.info("Background poller stopped successfully")
-        except Exception as exc:
-            logger.error("Error stopping background poller: %s", exc)
+        except Exception:
+            logger.exception("Error stopping background poller")
 
 
 # Create FastAPI app

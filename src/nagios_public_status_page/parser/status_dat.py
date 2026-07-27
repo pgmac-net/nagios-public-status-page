@@ -148,10 +148,9 @@ class StatusDatParser:
             service_description = service.get("service_description", "")
 
             # Check if service matches explicit list
-            if explicit_services:
-                if (host_name, service_description) in explicit_services:
-                    filtered_services.append(service)
-                    continue
+            if explicit_services and (host_name, service_description) in explicit_services:
+                filtered_services.append(service)
+                continue
 
             # Check if service matches servicegroup
             if servicegroups:

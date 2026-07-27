@@ -1,6 +1,6 @@
 """Database models for the status page application."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -69,7 +69,7 @@ class Comment(Base):
     incident_id: Mapped[int] = mapped_column(Integer, ForeignKey("incidents.id"), index=True)
     author: Mapped[str] = mapped_column(String(255))
     comment_text: Mapped[str] = mapped_column(Text)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), index=True)
 
     # Relationships
     incident: Mapped["Incident"] = relationship("Incident", back_populates="comments")

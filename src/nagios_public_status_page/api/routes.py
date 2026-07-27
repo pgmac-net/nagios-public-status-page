@@ -11,7 +11,10 @@ from fastapi.responses import Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sqlalchemy.orm import Session
 
-from nagios_public_status_page.api.graph_signing import GraphRequest, verify_graph_signature
+from nagios_public_status_page.api.graph_signing import (
+    GraphRequest,
+    verify_graph_signature,
+)
 from nagios_public_status_page.api.schemas import (
     CommentCreate,
     CommentResponse,
@@ -35,7 +38,7 @@ rss_router = APIRouter(prefix="/feed", tags=["rss"])
 security = HTTPBasic()
 
 
-def get_db() -> Generator[Session, None, None]:
+def get_db() -> Generator[Session]:
     """Dependency to get database session.
 
     Yields:
