@@ -123,6 +123,23 @@ mount it, so run `cp config.yaml.example config.yaml` before the first
 
 Never put credentials in `config.yaml.example` -- it is tracked in git.
 
+### Configuration is read once, at startup
+
+The application reads `config.yaml` and the environment exactly once, when the
+container starts, and serves every request from that cached configuration. A
+change to `config.yaml` or `.env` while the container is running has no effect
+until it is restarted:
+
+```bash
+docker compose up -d --force-recreate
+```
+
+This is deliberate. Configuration is bind mounted read-only, and the
+alternative -- re-reading it on every request -- meant the API and the
+background poller could silently disagree about the running configuration if
+`config.yaml` changed underneath a live container. See
+[#67](https://github.com/pgmac-net/nagios-public-status-page/issues/67).
+
 ### Upgrading an existing deployment
 
 `config.yaml` used to be tracked. If your deployment predates that change, its

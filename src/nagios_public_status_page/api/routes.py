@@ -35,11 +35,32 @@ from nagios_public_status_page.models import Comment, Incident
 
 if TYPE_CHECKING:
     from nagios_public_status_page.collector.poller import StatusPoller
+    from nagios_public_status_page.config import Config
 
 router = APIRouter(prefix="/api", tags=["api"])
 rss_router = APIRouter(prefix="/feed", tags=["rss"])
 
 security = HTTPBasic()
+
+
+def get_config(request: Request) -> "Config":
+    """Dependency returning the configuration loaded by the lifespan handler.
+
+    Returns the instance published on ``app.state`` at startup rather than
+    re-reading config.yaml per request, so a route and the background poller
+    always agree on the running configuration (#67). Falls back to a fresh
+    ``load_config()`` when the lifespan handler has not run -- the same
+    situation ``get_poller`` handles, and for the same reason: several test
+    fixtures use ``TestClient(app)`` without a context manager, which skips
+    lifespan entirely.
+
+    Returns:
+        The application's configuration
+    """
+    from nagios_public_status_page.config import load_config
+
+    config = getattr(request.app.state, "config", None)
+    return config if config is not None else load_config()
 
 
 def get_poller(request: Request) -> "StatusPoller | None":
@@ -70,19 +91,19 @@ def get_db() -> Generator[Session]:
         session.close()
 
 
-def verify_write_access(credentials: HTTPBasicCredentials = Depends(security)) -> None:
+def verify_write_access(
+    credentials: HTTPBasicCredentials = Depends(security),
+    config: "Config" = Depends(get_config),
+) -> None:
     """Verify Basic Auth credentials for write operations.
 
     Args:
         credentials: HTTP Basic Auth credentials
+        config: Application configuration
 
     Raises:
         HTTPException: If authentication is required but credentials are invalid
     """
-    from nagios_public_status_page.config import load_config
-
-    config = load_config()
-
     # If no auth configured, allow all access
     if not config.api.basic_auth_username or not config.api.basic_auth_password:
         return
@@ -159,24 +180,25 @@ def verify_write_access(credentials: HTTPBasicCredentials = Depends(security)) -
 def health_check(
     db: Session = Depends(get_db),
     poller: "StatusPoller | None" = Depends(get_poller),
+    config: "Config" = Depends(get_config),
 ) -> HealthResponse:
     """Health check endpoint.
 
     Args:
         db: Database session
         poller: The running background poller, or None if it was never started
+        config: Application configuration
 
     Returns:
         Health status information
     """
     from nagios_public_status_page.collector.poller import StatusPoller
-    from nagios_public_status_page.config import load_config
 
     try:
         # Poll metadata comes from the database, so a local instance is fine for
         # reading it. Scheduler state is in-process and must come from the
         # running poller, which is why the two are sourced separately below.
-        reader = poller or StatusPoller(load_config())
+        reader = poller or StatusPoller(config)
 
         # Get last poll metadata
         last_poll = reader.get_last_poll()
@@ -232,6 +254,7 @@ def trigger_poll(
     db: Session = Depends(get_db),
     _auth: None = Depends(verify_write_access),
     poller: "StatusPoller | None" = Depends(get_poller),
+    config: "Config" = Depends(get_config),
 ) -> dict:
     """Manually trigger a status.dat poll.
 
@@ -242,15 +265,15 @@ def trigger_poll(
     Args:
         db: Database session
         poller: The running background poller, or None if it was never started
+        config: Application configuration
 
     Returns:
         Poll results and statistics
     """
     from nagios_public_status_page.collector.poller import StatusPoller
-    from nagios_public_status_page.config import load_config
 
     try:
-        runner = poller or StatusPoller(load_config())
+        runner = poller or StatusPoller(config)
         results = runner.poll()
 
         return {
@@ -304,22 +327,22 @@ def trigger_poll(
 def get_status(
     db: Session = Depends(get_db),
     poller: "StatusPoller | None" = Depends(get_poller),
+    config: "Config" = Depends(get_config),
 ) -> StatusSummary:
     """Get overall status summary.
 
     Args:
         db: Database session
         poller: The running background poller, or None if it was never started
+        config: Application configuration
 
     Returns:
         Status summary with host/service counts
     """
     from nagios_public_status_page.collector.poller import StatusPoller
-    from nagios_public_status_page.config import load_config
     from nagios_public_status_page.parser.status_dat import StatusDatParser
 
     try:
-        config = load_config()
         parser = StatusDatParser(config.nagios.status_dat_path)
         parser.parse()
 
@@ -381,20 +404,22 @@ def get_status(
 
 
 @router.get("/hosts", response_model=list[HostStatusResponse])
-def get_hosts(db: Session = Depends(get_db)) -> list[HostStatusResponse]:
+def get_hosts(
+    db: Session = Depends(get_db),
+    config: "Config" = Depends(get_config),
+) -> list[HostStatusResponse]:
     """Get all monitored hosts with their current status.
 
     Args:
         db: Database session
+        config: Application configuration
 
     Returns:
         List of host statuses
     """
-    from nagios_public_status_page.config import load_config
     from nagios_public_status_page.parser.status_dat import StatusDatParser
 
     try:
-        config = load_config()
         parser = StatusDatParser(config.nagios.status_dat_path)
         parser.parse()
 
@@ -426,20 +451,22 @@ def get_hosts(db: Session = Depends(get_db)) -> list[HostStatusResponse]:
 
 
 @router.get("/services", response_model=list[ServiceStatusResponse])
-def get_services(db: Session = Depends(get_db)) -> list[ServiceStatusResponse]:
+def get_services(
+    db: Session = Depends(get_db),
+    config: "Config" = Depends(get_config),
+) -> list[ServiceStatusResponse]:
     """Get all monitored services with their current status.
 
     Args:
         db: Database session
+        config: Application configuration
 
     Returns:
         List of service statuses
     """
-    from nagios_public_status_page.config import load_config
     from nagios_public_status_page.parser.status_dat import StatusDatParser
 
     try:
-        config = load_config()
         parser = StatusDatParser(config.nagios.status_dat_path)
         parser.parse()
 
@@ -505,7 +532,13 @@ def get_services(db: Session = Depends(get_db)) -> list[ServiceStatusResponse]:
     },
 )
 async def get_graph(
-    host: str, service: str, period: str, expires: int, sig: str, timet: int = 0
+    host: str,
+    service: str,
+    period: str,
+    expires: int,
+    sig: str,
+    timet: int = 0,
+    config: "Config" = Depends(get_config),
 ) -> Response:
     """Proxy a signed nagiosgraph PNG image.
 
@@ -516,6 +549,7 @@ async def get_graph(
         expires: Unix timestamp the signature expires at.
         sig: HMAC-SHA256 signature over host|service|period|timet|expires.
         timet: Absolute unix epoch to anchor the graph window to (0 = live).
+        config: Application configuration.
 
     Returns:
         PNG image response.
@@ -524,9 +558,6 @@ async def get_graph(
         HTTPException: If the signature is invalid/expired, the proxy is
             unconfigured, or the upstream fetch fails.
     """
-    from nagios_public_status_page.config import load_config
-
-    config = load_config()
     graph_config = config.graph
 
     if not graph_config.nagiosgraph_url or not graph_config.signing_secret:
@@ -829,21 +860,24 @@ def update_pir_url(
         }
     }
 )
-def get_global_rss_feed(hours: int = 24, db: Session = Depends(get_db)) -> Response:
+def get_global_rss_feed(
+    hours: int = 24,
+    db: Session = Depends(get_db),
+    config: "Config" = Depends(get_config),
+) -> Response:
     """Get RSS feed for all recent incidents.
 
     Args:
         hours: Number of hours to look back (default 24)
         db: Database session
+        config: Application configuration
 
     Returns:
         RSS feed XML
     """
-    from nagios_public_status_page.config import load_config
     from nagios_public_status_page.rss.feed_generator import IncidentFeedGenerator
 
     try:
-        config = load_config()
         generator = IncidentFeedGenerator(config.rss, base_url=config.rss.link)
         feed_xml = generator.generate_global_feed(db, hours=hours)
 
@@ -856,7 +890,10 @@ def get_global_rss_feed(hours: int = 24, db: Session = Depends(get_db)) -> Respo
 
 @rss_router.get("/host/{host_name}/rss.xml")
 def get_host_rss_feed(
-    host_name: str, hours: int = 24, db: Session = Depends(get_db)
+    host_name: str,
+    hours: int = 24,
+    db: Session = Depends(get_db),
+    config: "Config" = Depends(get_config),
 ) -> Response:
     """Get RSS feed for a specific host's incidents.
 
@@ -864,6 +901,7 @@ def get_host_rss_feed(
         host_name: Host name to filter by
         hours: Number of hours to look back (default 24)
         db: Database session
+        config: Application configuration
 
     Returns:
         RSS feed XML
@@ -871,11 +909,9 @@ def get_host_rss_feed(
     Raises:
         HTTPException: If host has no incidents
     """
-    from nagios_public_status_page.config import load_config
     from nagios_public_status_page.rss.feed_generator import IncidentFeedGenerator
 
     try:
-        config = load_config()
         generator = IncidentFeedGenerator(config.rss, base_url=config.rss.link)
         feed_xml = generator.generate_host_feed(db, host_name, hours=hours)
 
@@ -899,6 +935,7 @@ def get_service_rss_feed(
     service_description: str,
     hours: int = 24,
     db: Session = Depends(get_db),
+    config: "Config" = Depends(get_config),
 ) -> Response:
     """Get RSS feed for a specific service's incidents.
 
@@ -907,6 +944,7 @@ def get_service_rss_feed(
         service_description: Service description
         hours: Number of hours to look back (default 24)
         db: Database session
+        config: Application configuration
 
     Returns:
         RSS feed XML
@@ -914,11 +952,9 @@ def get_service_rss_feed(
     Raises:
         HTTPException: If service has no incidents
     """
-    from nagios_public_status_page.config import load_config
     from nagios_public_status_page.rss.feed_generator import IncidentFeedGenerator
 
     try:
-        config = load_config()
         generator = IncidentFeedGenerator(config.rss, base_url=config.rss.link)
         feed_xml = generator.generate_service_feed(
             db, host_name, service_description, hours=hours
