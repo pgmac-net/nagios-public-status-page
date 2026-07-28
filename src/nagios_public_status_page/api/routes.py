@@ -929,7 +929,7 @@ def get_host_rss_feed(
         ) from exc
 
 
-@rss_router.get("/service/{host_name}/{service_description}/rss.xml")
+@rss_router.get("/service/{host_name}/{service_description:path}/rss.xml")
 def get_service_rss_feed(
     host_name: str,
     service_description: str,
@@ -941,7 +941,8 @@ def get_service_rss_feed(
 
     Args:
         host_name: Host name
-        service_description: Service description
+        service_description: Service description (may contain / or other special characters;
+            pass raw or percent-encoded, e.g. "Disk Space, /var" or "Disk%20Space%2C%20%2Fvar")
         hours: Number of hours to look back (default 24)
         db: Database session
         config: Application configuration
