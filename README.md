@@ -444,6 +444,24 @@ GET   /feed/host/{host_name}/rss                    - Per-host RSS feed
 GET   /feed/service/{host_name}/{service}/rss       - Per-service RSS feed
 ```
 
+### Service Description Routing
+
+Service descriptions containing slashes (e.g., "Disk Space, /var" or "CPU / Load") can be passed to the service RSS feed endpoint in two ways:
+
+**Raw slashes:**
+```
+/feed/service/macro/CPU / Load/rss.xml
+/feed/service/macro/Disk Space, /var/rss.xml
+```
+
+**Percent-encoded slashes:**
+```
+/feed/service/macro/CPU%20%2F%20Load/rss.xml
+/feed/service/macro/Disk%20Space%2C%20%2Fvar/rss.xml
+```
+
+Both forms are accepted. URL-encoding is recommended when constructing links programmatically.
+
 ## Database Schema
 
 The SQLite database includes:
