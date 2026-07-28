@@ -20,9 +20,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Global poller instance
-poller: StatusPoller | None = None
-
 # Load configuration
 try:
     config = load_config()
@@ -36,14 +33,19 @@ except Exception:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Start the background poller on application startup."""
-    global poller
+    """Start the background poller on startup and stop it on shutdown.
+
+    The poller is stored on ``app.state`` rather than in a module global so the
+    API routes can reach the instance that is actually running. Reporting on a
+    freshly constructed poller instead is what made /api/health claim the
+    scheduler was stopped at all times (#60).
+    """
     logger.info("Starting application...")
 
     try:
         # Start the background poller
-        poller = StatusPoller(config)
-        poller.start()
+        app.state.poller = StatusPoller(config)
+        app.state.poller.start()
         logger.info("Background poller started successfully")
     except Exception:
         logger.exception("Failed to start background poller")
@@ -51,15 +53,17 @@ async def lifespan(app: FastAPI):
 
     yield  # Do application stuff
 
-    """Stop the background poller on application shutdown."""
+    # Stop the background poller on application shutdown
     logger.info("Shutting down application...")
 
-    if poller:
+    if app.state.poller:
         try:
-            poller.stop()
+            app.state.poller.stop()
             logger.info("Background poller stopped successfully")
         except Exception:
             logger.exception("Error stopping background poller")
+        finally:
+            app.state.poller = None
 
 
 # Create FastAPI app

@@ -4,9 +4,10 @@ import secrets
 import time
 from collections.abc import Generator
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sqlalchemy.orm import Session
@@ -32,10 +33,28 @@ from nagios_public_status_page.collector.incident_tracker import IncidentTracker
 from nagios_public_status_page.db.database import get_session
 from nagios_public_status_page.models import Comment, Incident
 
+if TYPE_CHECKING:
+    from nagios_public_status_page.collector.poller import StatusPoller
+
 router = APIRouter(prefix="/api", tags=["api"])
 rss_router = APIRouter(prefix="/feed", tags=["rss"])
 
 security = HTTPBasic()
+
+
+def get_poller(request: Request) -> "StatusPoller | None":
+    """Dependency returning the background poller started by the lifespan handler.
+
+    Returns the running instance rather than a new one. Constructing a fresh
+    ``StatusPoller`` here would report ``is_running=False`` and therefore a
+    permanently critical scheduler, which is the bug in #60.
+
+    Returns:
+        The running poller, or None when the lifespan handler has not run --
+        which happens under TestClient outside a context manager, and in
+        production only if startup failed.
+    """
+    return getattr(request.app.state, "poller", None)
 
 
 def get_db() -> Generator[Session]:
@@ -137,11 +156,15 @@ def verify_write_access(credentials: HTTPBasicCredentials = Depends(security)) -
         }
     }
 )
-def health_check(db: Session = Depends(get_db)) -> HealthResponse:
+def health_check(
+    db: Session = Depends(get_db),
+    poller: "StatusPoller | None" = Depends(get_poller),
+) -> HealthResponse:
     """Health check endpoint.
 
     Args:
         db: Database session
+        poller: The running background poller, or None if it was never started
 
     Returns:
         Health status information
@@ -150,12 +173,14 @@ def health_check(db: Session = Depends(get_db)) -> HealthResponse:
     from nagios_public_status_page.config import load_config
 
     try:
-        config = load_config()
-        poller = StatusPoller(config)
+        # Poll metadata comes from the database, so a local instance is fine for
+        # reading it. Scheduler state is in-process and must come from the
+        # running poller, which is why the two are sourced separately below.
+        reader = poller or StatusPoller(load_config())
 
         # Get last poll metadata
-        last_poll = poller.get_last_poll()
-        is_stale = poller.is_data_stale()
+        last_poll = reader.get_last_poll()
+        is_stale = reader.is_data_stale()
 
         # Get active incidents count
         tracker = IncidentTracker(db)
@@ -172,9 +197,21 @@ def health_check(db: Session = Depends(get_db)) -> HealthResponse:
         if active_count > 0:
             status = "degraded"
 
-        # Get scheduler status
-        scheduler_status_dict = poller.get_scheduler_status()
-        scheduler_status = SchedulerStatusResponse(**scheduler_status_dict)
+        # Get scheduler status from the running poller. When the lifespan
+        # handler never ran there is no scheduler, and reporting it as stopped
+        # is the truthful answer rather than a fabricated healthy one.
+        if poller is not None:
+            scheduler_status = SchedulerStatusResponse(**poller.get_scheduler_status())
+        else:
+            scheduler_status = SchedulerStatusResponse(
+                is_running=False,
+                scheduler_running=False,
+                consecutive_failures=0,
+                max_consecutive_failures=0,
+                recovery_attempts=0,
+                last_recovery_time=None,
+                health_status="critical",
+            )
 
         poll_time = last_poll.last_poll_time if last_poll else None
         return HealthResponse(
@@ -193,12 +230,18 @@ def health_check(db: Session = Depends(get_db)) -> HealthResponse:
 @router.post("/poll")
 def trigger_poll(
     db: Session = Depends(get_db),
-    _auth: None = Depends(verify_write_access)
+    _auth: None = Depends(verify_write_access),
+    poller: "StatusPoller | None" = Depends(get_poller),
 ) -> dict:
     """Manually trigger a status.dat poll.
 
+    Runs on the background poller so that failures counted here feed the same
+    self-healing state the scheduler uses. Polling a throwaway instance instead
+    meant a failing manual poll was recorded and immediately discarded.
+
     Args:
         db: Database session
+        poller: The running background poller, or None if it was never started
 
     Returns:
         Poll results and statistics
@@ -207,9 +250,8 @@ def trigger_poll(
     from nagios_public_status_page.config import load_config
 
     try:
-        config = load_config()
-        poller = StatusPoller(config)
-        results = poller.poll()
+        runner = poller or StatusPoller(load_config())
+        results = runner.poll()
 
         return {
             "success": True,
@@ -259,11 +301,15 @@ def trigger_poll(
         }
     }
 )
-def get_status(db: Session = Depends(get_db)) -> StatusSummary:
+def get_status(
+    db: Session = Depends(get_db),
+    poller: "StatusPoller | None" = Depends(get_poller),
+) -> StatusSummary:
     """Get overall status summary.
 
     Args:
         db: Database session
+        poller: The running background poller, or None if it was never started
 
     Returns:
         Status summary with host/service counts
@@ -310,10 +356,10 @@ def get_status(db: Session = Depends(get_db)) -> StatusSummary:
         tracker = IncidentTracker(db)
         active_incidents = len(tracker.get_active_incidents())
 
-        # Get last poll time
-        poller = StatusPoller(config)
-        last_poll = poller.get_last_poll()
-        is_stale = poller.is_data_stale()
+        # Get last poll time from the running poller where available
+        reader = poller or StatusPoller(config)
+        last_poll = reader.get_last_poll()
+        is_stale = reader.is_data_stale()
 
         poll_time = last_poll.last_poll_time if last_poll else None
         return StatusSummary(
