@@ -9,13 +9,49 @@ disagree about the running configuration if config.yaml changed underneath a
 live container (#67).
 """
 
+import tempfile
+from pathlib import Path
+
 import pytest
 from starlette.testclient import TestClient
 
 import nagios_public_status_page.config as config_module
 from nagios_public_status_page.api.routes import get_config
-from nagios_public_status_page.config import APIConfig, Config, NagiosConfig
+from nagios_public_status_page.db import database as database_module
 from nagios_public_status_page.main import app
+
+
+@pytest.fixture
+def isolated_database(monkeypatch):
+    """Point the app at a private temp database and isolate the db singleton.
+
+    get_database() caches a process-wide singleton (see #60), so running a
+    real lifespan here -- which constructs a StatusPoller and therefore calls
+    get_database() -- would otherwise bind every *other* test in the session
+    to whatever database.path this file's config happened to use, even tests
+    that carefully override get_db for their own routes. Reset before and
+    after, and use a private DATABASE_PATH so nothing here touches the real
+    ./data/status.db or any other test's database.
+
+    Initialises the singleton immediately (rather than leaving it None for a
+    StatusPoller to lazily create later) because the get_db dependency used
+    directly by several routes calls get_session(), which requires the
+    singleton to already exist -- unlike get_database(path), it does not
+    accept a path and initialise on demand.
+    """
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as temp_db:
+        db_path = temp_db.name
+
+    monkeypatch.setenv("DATABASE_PATH", db_path)
+
+    previous = database_module._db_instance
+    database_module._db_instance = None
+    database_module.get_database(db_path)
+
+    yield db_path
+
+    database_module._db_instance = previous
+    Path(db_path).unlink(missing_ok=True)
 
 
 @pytest.fixture
@@ -32,7 +68,9 @@ def load_config_counter(monkeypatch):
     return calls
 
 
-def test_config_is_loaded_once_across_many_requests(load_config_counter, monkeypatch):
+def test_config_is_loaded_once_across_many_requests(
+    load_config_counter, isolated_database, monkeypatch
+):
     """Driving several endpoints through a real lifespan must not reload config.
 
     This is the regression test for #67 and fails on the pre-fix source: each
@@ -57,7 +95,7 @@ def test_config_is_loaded_once_across_many_requests(load_config_counter, monkeyp
         )
 
 
-def test_routes_and_poller_observe_the_same_configuration(monkeypatch):
+def test_routes_and_poller_observe_the_same_configuration(isolated_database, monkeypatch):
     """The value app.state.config exposes must be the exact object main.py loaded.
 
     Guards against a fix that loads a *second*, independent Config on startup --
@@ -94,7 +132,7 @@ def test_get_config_falls_back_when_lifespan_has_not_run(monkeypatch):
     assert config.nagios.status_dat_path == "/nonexistent/status.dat"
 
 
-def test_write_endpoint_auth_still_works_with_cached_config():
+def test_write_endpoint_auth_still_works_with_cached_config(isolated_database):
     """verify_write_access must authenticate correctly via the injected config.
 
     It is a Depends() itself now, nested inside another Depends() -- this
@@ -104,10 +142,18 @@ def test_write_endpoint_auth_still_works_with_cached_config():
     loaded at import time, so a test cannot influence it with env vars set
     inside the test function -- it overrides the get_config dependency
     directly instead, the same way other tests override get_db and get_poller.
+    No lifespan runs here (plain TestClient(app), no `with`), so no
+    StatusPoller is started by the app itself -- but /api/poll builds one on
+    demand when no poller is attached, which needs a database, hence
+    isolated_database rather than relying on some other test having already
+    initialised the global singleton.
     """
-    configured = Config(
-        nagios=NagiosConfig(status_dat_path="/nonexistent/status.dat"),
-        api=APIConfig(basic_auth_username="admin", basic_auth_password="secret"),
+    configured = config_module.Config(
+        nagios=config_module.NagiosConfig(status_dat_path="/nonexistent/status.dat"),
+        api=config_module.APIConfig(
+            basic_auth_username="admin", basic_auth_password="secret"
+        ),
+        database=config_module.DatabaseConfig(path=isolated_database),
     )
     app.dependency_overrides[get_config] = lambda: configured
 
