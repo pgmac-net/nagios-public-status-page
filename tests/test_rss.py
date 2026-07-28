@@ -90,7 +90,7 @@ def sample_incidents(test_db):
 
 def test_create_base_feed(feed_generator, rss_config):
     """Test base feed creation."""
-    feed = feed_generator._create_base_feed()
+    feed = feed_generator._create_base_feed("/feed/rss.xml")
 
     assert feed.title() == rss_config.title
     assert feed.description() == rss_config.description
