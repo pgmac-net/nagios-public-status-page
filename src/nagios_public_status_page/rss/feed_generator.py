@@ -1,5 +1,7 @@
 """RSS feed generation for incidents."""
 
+from urllib.parse import quote
+
 from feedgen.feed import FeedGenerator
 from sqlalchemy.orm import Session
 
@@ -15,15 +17,24 @@ class IncidentFeedGenerator:
 
         Args:
             config: RSS configuration
-            base_url: Base URL for links in the feed
+            base_url: Base URL of the status page (config.rss.link), used for the
+                channel <link> and as the entry link target. Feed self-links are
+                built from this plus each feed's own route -- see _create_base_feed.
         """
         self.config = config
         self.base_url = base_url.rstrip("/")
 
-    def _create_base_feed(self, title: str | None = None, description: str | None = None) -> FeedGenerator:
+    def _create_base_feed(
+        self, feed_path: str, title: str | None = None, description: str | None = None
+    ) -> FeedGenerator:
         """Create a base feed generator with common configuration.
 
         Args:
+            feed_path: This feed's own route, e.g. "/feed/rss.xml" or
+                "/feed/host/{host}/rss.xml". Used for atom:link rel="self" --
+                RSS 2.0 has only one <link> element and feedgen renders the
+                *self* href into it, so this must be the feed's real,
+                resolvable URL rather than a placeholder.
             title: Feed title (uses config default if not provided)
             description: Feed description (uses config default if not provided)
 
@@ -33,8 +44,15 @@ class IncidentFeedGenerator:
         feed = FeedGenerator()
         feed.title(title or self.config.title)
         feed.description(description or self.config.description)
+        # feedgen renders RSS 2.0's single <link> from whichever link() call was
+        # made *last*, regardless of rel -- it does not distinguish alternate
+        # from self for that element. Both calls still populate the atom:link
+        # list correctly, so atom:link rel="self" is unaffected by the order.
+        # The self link must therefore come first, so the final <link> element
+        # ends up holding the alternate (status page) URL as the RSS 2.0 spec
+        # requires: "the URL to the HTML website corresponding to the channel".
+        feed.link(href=f"{self.base_url}{feed_path}", rel="self")
         feed.link(href=self.config.link, rel="alternate")
-        feed.link(href=f"{self.base_url}/feed.rss", rel="self")
         feed.language("en")
         feed.generator("Nagios Public Status Page")
         return feed
@@ -56,10 +74,15 @@ class IncidentFeedGenerator:
 
         entry.title(title)
 
-        # Build entry ID (unique identifier)
-        entry_id = f"{self.base_url}/incidents/{incident.id}"
-        entry.id(entry_id)
-        entry.link(href=entry_id)
+        # entry.id() is rendered as <guid isPermaLink="false">, so it only needs
+        # to be stable and unique -- it does not need to resolve. Keep the
+        # /incidents/{id} form: changing it would make every existing item look
+        # new to subscribers and re-fire notifications for incidents they have
+        # already seen. There is no per-incident page to link to (the frontend
+        # has no deep-linking), so entry.link() goes to the status page itself
+        # rather than to another dead URL.
+        entry.id(f"{self.base_url}/incidents/{incident.id}")
+        entry.link(href=self.config.link)
 
         # Set published date. Incident timestamps are already timezone-aware UTC
         # (see nagios_public_status_page.db.types.UTCDateTime), so feedgen can
@@ -117,7 +140,7 @@ class IncidentFeedGenerator:
         """
         from nagios_public_status_page.collector.incident_tracker import IncidentTracker
 
-        feed = self._create_base_feed()
+        feed = self._create_base_feed("/feed/rss.xml")
 
         # Get recent incidents
         tracker = IncidentTracker(session)
@@ -146,6 +169,7 @@ class IncidentFeedGenerator:
         from nagios_public_status_page.collector.incident_tracker import IncidentTracker
 
         feed = self._create_base_feed(
+            f"/feed/host/{quote(host_name, safe='')}/rss.xml",
             title=f"{self.config.title} - {host_name}",
             description=f"Status updates for {host_name}",
         )
@@ -186,6 +210,8 @@ class IncidentFeedGenerator:
         from nagios_public_status_page.collector.incident_tracker import IncidentTracker
 
         feed = self._create_base_feed(
+            f"/feed/service/{quote(host_name, safe='')}"
+            f"/{quote(service_description, safe='')}/rss.xml",
             title=f"{self.config.title} - {host_name}/{service_description}",
             description=f"Status updates for {host_name}/{service_description}",
         )
