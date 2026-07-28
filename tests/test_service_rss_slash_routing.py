@@ -12,7 +12,6 @@ from urllib.parse import quote
 import pytest
 from starlette.testclient import TestClient
 
-from nagios_public_status_page.api.routes import get_db
 from nagios_public_status_page.main import app
 from nagios_public_status_page.models import Incident
 
