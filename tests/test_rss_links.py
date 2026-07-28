@@ -16,7 +16,7 @@ does not see routes registered this way.
 """
 
 import tempfile
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from xml.etree import ElementTree
 
@@ -102,7 +102,10 @@ def incident(test_db):
         incident_type="host",
         host_name="macro",
         state=1,
-        started_at=datetime(2026, 7, 27, 12, 0, tzinfo=UTC),
+        # Recent, not a fixed calendar date: generate_*_feed only includes
+        # incidents within its hours window (default 24), and a hardcoded date
+        # ages out of that window as soon as more than 24h pass (#71).
+        started_at=datetime.now(UTC) - timedelta(hours=1),
     )
     test_db.add(incident)
     test_db.commit()
@@ -174,7 +177,7 @@ def test_service_feed_self_link_resolves_and_is_service_specific(
         host_name="macro",
         service_description="HTTP",
         state=1,
-        started_at=datetime(2026, 7, 27, 12, 0, tzinfo=UTC),
+        started_at=datetime.now(UTC) - timedelta(hours=1),
     )
     test_db.add(incident)
     test_db.commit()
@@ -211,7 +214,7 @@ def test_service_feed_self_link_encodes_special_characters(feed_generator, test_
         host_name="macro",
         service_description="Disk Space, /var",
         state=1,
-        started_at=datetime(2026, 7, 27, 12, 0, tzinfo=UTC),
+        started_at=datetime.now(UTC) - timedelta(hours=1),
     )
     test_db.add(incident)
     test_db.commit()

@@ -35,15 +35,24 @@ except Exception:
 async def lifespan(app: FastAPI):
     """Start the background poller on startup and stop it on shutdown.
 
-    The poller is stored on ``app.state`` rather than in a module global so the
-    API routes can reach the instance that is actually running. Reporting on a
-    freshly constructed poller instead is what made /api/health claim the
-    scheduler was stopped at all times (#60).
+    The poller and the configuration are both stored on ``app.state`` rather
+    than read fresh per request, so the API routes see the same instances the
+    application actually started with. For the poller, reporting on a freshly
+    constructed instance instead is what made /api/health claim the scheduler
+    was stopped at all times (#60). For configuration, every route previously
+    called load_config() itself, re-reading and re-parsing config.yaml from
+    disk on each request while the poller kept whatever it read at import time
+    -- so the two could silently disagree about the running configuration
+    (#67). Caching means an edit to config.yaml or .env now requires a
+    container restart to take effect; that trade is accepted and documented in
+    DEPLOYMENT.md.
     """
     logger.info("Starting application...")
 
     try:
-        # Start the background poller
+        # Publish the configuration loaded at import time, and start the
+        # background poller against that same object.
+        app.state.config = config
         app.state.poller = StatusPoller(config)
         app.state.poller.start()
         logger.info("Background poller started successfully")
@@ -64,6 +73,8 @@ async def lifespan(app: FastAPI):
             logger.exception("Error stopping background poller")
         finally:
             app.state.poller = None
+
+    app.state.config = None
 
 
 # Create FastAPI app
