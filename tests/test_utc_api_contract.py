@@ -61,24 +61,31 @@ def client(db_engine):
 
 
 def test_incident_timestamps_serialise_without_offset(client, db_session):
-    """API timestamps carry no offset, exactly as before the UTC conversion."""
+    """API timestamps carry no offset, exactly as before the UTC conversion.
+
+    started_at etc. are relative to now, not a hardcoded date: /api/incidents
+    defaults to a 24h "recent incidents" window, and a fixed calendar date ages
+    out of it as soon as more than 24h pass since the fixture was written (#71).
+    """
+    started = datetime.now(UTC).replace(microsecond=0) - timedelta(hours=2)
+    ended = started + timedelta(minutes=90)
     db_session.add(
         Incident(
             incident_type="host",
             host_name="k8s01",
             state=1,
-            started_at=datetime(2026, 7, 27, 12, 0, tzinfo=UTC),
-            ended_at=datetime(2026, 7, 27, 13, 30, tzinfo=UTC),
-            last_check=datetime(2026, 7, 27, 13, 30, tzinfo=UTC),
+            started_at=started,
+            ended_at=ended,
+            last_check=ended,
         )
     )
     db_session.commit()
 
     payload = client.get("/api/incidents").json()[0]
 
-    assert payload["started_at"] == "2026-07-27T12:00:00"
-    assert payload["ended_at"] == "2026-07-27T13:30:00"
-    assert payload["last_check"] == "2026-07-27T13:30:00"
+    assert payload["started_at"] == started.replace(tzinfo=None).isoformat()
+    assert payload["ended_at"] == ended.replace(tzinfo=None).isoformat()
+    assert payload["last_check"] == ended.replace(tzinfo=None).isoformat()
     for field in ("started_at", "ended_at", "last_check"):
         assert "+" not in payload[field]
         assert not payload[field].endswith("Z")
@@ -91,7 +98,7 @@ def test_null_timestamps_still_serialise_as_null(client, db_session):
             incident_type="host",
             host_name="k8s02",
             state=1,
-            started_at=datetime(2026, 7, 27, 12, 0, tzinfo=UTC),
+            started_at=datetime.now(UTC) - timedelta(hours=1),
         )
     )
     db_session.commit()
@@ -119,21 +126,24 @@ def test_to_dict_matches_api_serialisation(db_session):
 def test_incident_written_in_non_utc_zone_serialises_as_utc(client, db_session):
     """A +10:00 value is normalised to UTC before it reaches the API.
 
-    Without UTCDateTime, SQLite would store the 22:00 wall clock and the API
-    would serve a timestamp ten hours ahead of the real event time.
+    Without UTCDateTime, SQLite would store the wall clock unconverted and the
+    API would serve a timestamp ten hours ahead of the real event time.
     """
     aest = timezone(timedelta(hours=10))
+    started_utc = (datetime.now(UTC).replace(microsecond=0) - timedelta(hours=1))
+    started_aest = started_utc.astimezone(aest)
     db_session.add(
         Incident(
             incident_type="host",
             host_name="macro",
             state=1,
-            started_at=datetime(2026, 7, 27, 22, 0, tzinfo=aest),
+            started_at=started_aest,
         )
     )
     db_session.commit()
 
-    assert client.get("/api/incidents").json()[0]["started_at"] == "2026-07-27T12:00:00"
+    payload = client.get("/api/incidents").json()[0]
+    assert payload["started_at"] == started_utc.replace(tzinfo=None).isoformat()
 
 
 def test_incident_comparisons_hold_across_offsets(db_session):
